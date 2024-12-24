@@ -30,6 +30,10 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 0
     },
+    watchRewards: {
+      type: Number,
+      default: 0
+    },
     gameRewards: {
       gamePoints: {
         type: Number,
