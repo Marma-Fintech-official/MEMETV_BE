@@ -5,6 +5,7 @@ const {
   login,
   userGameRewards,
   userTaskRewards,
+  purchaseBooster
 } = require('../controllers/userController')
 
 router.post(
@@ -41,6 +42,19 @@ router.post(
     })
   }),
   userTaskRewards
+)
+
+router.post(
+  '/purchaseBooster',
+  celebrate({
+    [Segments.BODY]: Joi.object().keys({
+      telegramId: Joi.string().required(),
+      boosterPoints: Joi.string().required(),
+      booster: Joi.string().required(),
+      boosterCount: Joi.number().required()
+    })
+  }),
+  purchaseBooster
 )
 
 router.use(errors())

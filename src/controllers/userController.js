@@ -512,9 +512,111 @@ const userTaskRewards = async (req, res, next) => {
   }
 };
 
+const purchaseBooster = async (req, res, next) => {
+  try {
+    const { telegramId, boosterPoints, booster, boosterCount } = req.body
+
+    // Log the incoming request
+    logger.info(`Received request to purchase booster for telegramId: ${telegramId}`)
+
+    // Get the current date and time
+    const now = new Date()
+
+    // Find the user by telegramId
+    const user = await User.findOne({ telegramId })
+
+    // Check if the user exists
+    if (!user) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Check if the user has enough boosterPoints available in totalRewards
+    const totalBoosterPoints = parseInt(boosterPoints)
+    if (user.totalRewards < totalBoosterPoints) {
+      logger.warn(`Insufficient points for booster purchase for telegramId: ${telegramId}`)
+      return res.status(400).json({ message: 'Not enough purchase points available' })
+    }
+
+    // Deduct the total boosterPoints from totalRewards
+    user.totalRewards -= totalBoosterPoints
+
+    // Log the deduction of points
+    logger.info(`Deducted ${totalBoosterPoints} points from totalRewards for telegramId: ${telegramId}`)
+
+    // Deduct the same amount from spendingRewards (negative value)
+    user.spendingRewards -= totalBoosterPoints
+
+    // Log the deduction in spendingRewards
+    logger.info(`Deducted ${totalBoosterPoints} points from spendingRewards for telegramId: ${telegramId}`)
+
+    // Check if the booster type exists in the boosters array
+    const existingBooster = user.boosters.find(b => b.type === booster)
+
+    if (existingBooster) {
+      // If booster exists, update the count
+      existingBooster.count += boosterCount
+      logger.info(`Updated booster count for ${booster} to ${existingBooster.count} for telegramId: ${telegramId}`)
+    } else {
+      // If booster doesn't exist, add a new entry
+      user.boosters.push({
+        type: booster,
+        count: boosterCount
+      })
+      logger.info(`Added new booster ${booster} with count ${boosterCount} for telegramId: ${telegramId}`)
+    }
+
+    // Create or update spending history in userReward model
+    const currentDateString = now.toISOString().split('T')[0]  // Get today's date in 'YYYY-MM-DD' format
+
+    // Check for an existing userReward record for today and category "spending"
+    let reward = await userReward.findOne({
+      telegramId,
+      date: currentDateString,
+      category: 'spending',
+    })
+
+    if (reward) {
+      // If a record exists, update the rewardPoints for today's record
+      reward.rewardPoints += totalBoosterPoints
+      await reward.save()
+      logger.info(`Updated userReward for spending for user ${telegramId} on ${currentDateString}`)
+    } else {
+      // If no record exists, create a new userReward record for today's spending
+      reward = new userReward({
+        category: 'spending',
+        date: currentDateString,
+        rewardPoints: totalBoosterPoints,  // Store positive value for spending
+        userId: user._id,
+        telegramId,
+      })
+      await reward.save()
+      logger.info(`Created new userReward for spending for user ${telegramId} on ${currentDateString}`)
+    }
+
+    // Save the updated user data
+    await user.save()
+
+    // Respond with the updated user details
+    logger.info(`Booster purchase successful for telegramId: ${telegramId}`)
+    return res.status(200).json({
+      message: 'Booster purchased successfully',
+      user
+    })
+
+  } catch (err) {
+    logger.error(`Error processing booster purchase for telegramId: ${req.body.telegramId} - ${err.message}`)
+    next(err)
+  }
+}
+
+
+
+
 
 module.exports = {
   login,
   userGameRewards,
-  userTaskRewards
+  userTaskRewards,
+  purchaseBooster
 }
