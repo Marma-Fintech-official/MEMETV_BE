@@ -26,6 +26,38 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 0
     },
+    gameRewards: {
+      gamePoints: {
+        type: Number,
+        default: 0
+      },
+      createdAt: {
+        type: Date,
+        default: 0
+      }
+    },
+    spendingRewards: {
+      type: Number,
+      default: 0
+    },
+    taskRewards: {
+      taskPoints: {
+        type: Number,
+        default: 0
+      },
+      twitter: {
+        type: Boolean,
+        default: false
+      },
+      telegram: {
+        type: Boolean,
+        default: false
+      },
+      youtube: {
+        type: Boolean,
+        default: false
+      }
+    },
     referredById: {
       type: String,
       default: ''
