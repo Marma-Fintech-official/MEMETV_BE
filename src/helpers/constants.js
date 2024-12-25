@@ -1,6 +1,6 @@
 // Level-up bonuses for each level
 const levelUpBonuses = [
-  10, // Level 2 to Level 3
+  1000, // Level 2 to Level 3
   10000, // Level 3 to Level 4
   50000, // Level 4 to Level 5
   100000, // Level 5 to Level 6
@@ -14,7 +14,7 @@ const levelUpBonuses = [
 // Thresholds for level-ups based on totalRewards
 const thresholds = [
   { limit: 500, level: 1 },
-  { limit: 600, level: 2 },
+  { limit: 10000, level: 2 },
   { limit: 50000, level: 3 },
   { limit: 200000, level: 4 },
   { limit: 800000, level: 5 },

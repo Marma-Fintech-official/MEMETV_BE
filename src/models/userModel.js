@@ -18,6 +18,10 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 500
     },
+    balanceRewards: {
+      type: Number,
+      default: 500
+    },
     levelUpRewards: {
       type: Number,
       default: 500
