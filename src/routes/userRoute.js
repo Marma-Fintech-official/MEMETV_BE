@@ -3,7 +3,8 @@ const router = express.Router()
 const { celebrate, Joi, errors, Segments } = require('celebrate')
 const {
   login,
-  userGameRewards
+  userGameRewards,
+  userTaskRewards,
 } = require('../controllers/userController')
 
 router.post(
@@ -28,6 +29,18 @@ router.post(
     })
   }),
   userGameRewards
+)
+
+router.post(
+  '/userTaskRewards',
+  celebrate({
+    [Segments.BODY]: Joi.object().keys({
+      telegramId: Joi.string().required(),
+      taskPoints: Joi.string().required(),
+      channel: Joi.string().required()
+    })
+  }),
+  userTaskRewards
 )
 
 router.use(errors())

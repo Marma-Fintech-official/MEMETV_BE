@@ -293,13 +293,133 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = req.body;
+    const { telegramId, boosters, gamePoints } = req.body
 
     // Get the current date and time
-    const now = new Date();
-    const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const now = new Date()
+    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
-    logger.info(`Received request to add game rewards for user with telegramId: ${telegramId}`);
+    logger.info(
+      `Received request to add game rewards for user with telegramId: ${telegramId}`
+    )
+
+    // Find the user by telegramId
+    const user = await User.findOne({ telegramId })
+
+    if (!user) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Check if the current date is earlier than the last update date
+    if (user.gameRewards && user.gameRewards.createdAt) {
+      const lastUpdateDate = new Date(user.gameRewards.createdAt)
+      const lastUpdateDateString = lastUpdateDate.toISOString().split('T')[0]
+
+      if (currentDateString < lastUpdateDateString) {
+        logger.warn(
+          `Attempt to update game rewards to an earlier date for user ${telegramId}`
+        )
+        return res.status(403).json({
+          message: `Game Rewards cannot be updated to an earlier date.`,
+          user
+        })
+      }
+    }
+
+    // Update game points
+    if (gamePoints) {
+      const points = parseInt(gamePoints, 10)
+      if (!isNaN(points) && points > 0) {
+        user.gameRewards.gamePoints += points
+        user.gameRewards.createdAt = now
+
+        // Add gamePoints to totalRewards
+        user.totalRewards += points
+
+        // Check for an existing userReward record for today and category "game"
+        let reward = await userReward.findOne({
+          telegramId,
+          date: currentDateString,
+          category: 'game'
+        })
+
+        if (reward) {
+          // Update the rewardPoints for today's record
+          reward.rewardPoints += points
+          await reward.save()
+          logger.info(
+            `Updated userReward for user ${telegramId} on ${currentDateString}`
+          )
+        } else {
+          // Create a new userReward record for today
+          reward = new userReward({
+            category: 'game',
+            date: currentDateString,
+            rewardPoints: points,
+            userId: user._id,
+            telegramId
+          })
+          await reward.save()
+          logger.info(
+            `Created new userReward for user ${telegramId} on ${currentDateString}`
+          )
+        }
+
+        logger.info(`Added ${points} gamePoints to user ${telegramId}`)
+      } else {
+        logger.warn(`Invalid gamePoints value: ${gamePoints}`)
+      }
+    }
+
+    // Update boosters
+    if (Array.isArray(boosters) && boosters.length > 0) {
+      const boosterCounts = boosters.reduce((acc, booster) => {
+        acc[booster] = (acc[booster] || 0) + 1
+        return acc
+      }, {})
+
+      user.boosters = user.boosters.map(booster => {
+        if (boosterCounts[booster.type]) {
+          booster.count += boosterCounts[booster.type]
+          delete boosterCounts[booster.type] // Remove processed booster type
+        }
+        return booster
+      })
+
+      // Add new booster types
+      for (const [type, count] of Object.entries(boosterCounts)) {
+        user.boosters.push({ type, count })
+      }
+
+      logger.info(`Updated boosters for user ${telegramId}`)
+    }
+
+    // Update the user's level and levelUpRewards based on the new totalRewards
+    updateLevel(user, currentDateString)
+
+    // Save the updated user
+    await user.save()
+    logger.info(`Successfully updated game rewards for user ${telegramId}`)
+
+    return res
+      .status(200)
+      .json({ message: 'Game rewards updated successfully', user })
+  } catch (err) {
+    logger.error(
+      `Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
+    )
+    next(err)
+  }
+}
+
+const userTaskRewards = async (req, res, next) => {
+  try {
+    const { telegramId, taskPoints, channel } = req.body;
+
+    logger.info(
+      `Received request to add task rewards for user with telegramId: ${telegramId}`
+    );
 
     // Find the user by telegramId
     const user = await User.findOne({ telegramId });
@@ -309,103 +429,92 @@ const userGameRewards = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-      // Check if the current date is earlier than the last update date
-      if (user.gameRewards && user.gameRewards.createdAt) {
-        const lastUpdateDate = new Date(user.gameRewards.createdAt);
-        const lastUpdateDateString = lastUpdateDate.toISOString().split('T')[0];
-  
-        if (currentDateString < lastUpdateDateString) {
-          logger.warn(`Attempt to update game rewards to an earlier date for user ${telegramId}`);
-          return res.status(403).json({
-            message: `Game Rewards cannot be updated to an earlier date.`,
-            user,
-          });
-        }
-      }
+    const now = new Date(); // Get current date and time
+    const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-    // Update game points
-    if (gamePoints) {
-      const points = parseInt(gamePoints, 10);
-      if (!isNaN(points) && points > 0) {
-        user.gameRewards.gamePoints += points;
-        user.gameRewards.createdAt = now;
+    // Ensure taskPoints is a Number
+    const pointsToAdd = Number(taskPoints) || 0;
 
-        // Add gamePoints to totalRewards
-        user.totalRewards += points;
-
-        // Check for an existing userReward record for today and category "game"
-        let reward = await userReward.findOne({
-          telegramId,
-          date: currentDateString,
-          category: 'game',
+    // Check if the specific channel is already true (rewards already claimed)
+    if (channel && user.taskRewards.hasOwnProperty(channel)) {
+      if (user.taskRewards[channel]) {
+        logger.warn(
+          `Rewards for ${channel} have already been claimed by user with telegramId: ${telegramId}`
+        );
+        return res.status(400).json({
+          message: `Rewards for ${channel} have already been claimed.`,
         });
-
-        if (reward) {
-          // Update the rewardPoints for today's record
-          reward.rewardPoints += points;
-          await reward.save();
-          logger.info(`Updated userReward for user ${telegramId} on ${currentDateString}`);
-        } else {
-          // Create a new userReward record for today
-          reward = new userReward({
-            category: 'game',
-            date: currentDateString,
-            rewardPoints: points,
-            userId: user._id,
-            telegramId,
-          });
-          await reward.save();
-          logger.info(`Created new userReward for user ${telegramId} on ${currentDateString}`);
-        }
-
-        logger.info(`Added ${points} gamePoints to user ${telegramId}`);
-      } else {
-        logger.warn(`Invalid gamePoints value: ${gamePoints}`);
       }
+    } else {
+      logger.warn(`Invalid channel: ${channel}`);
+      return res.status(400).json({ message: 'Invalid channel provided.' });
     }
 
-    // Update boosters
-    if (Array.isArray(boosters) && boosters.length > 0) {
-      const boosterCounts = boosters.reduce((acc, booster) => {
-        acc[booster] = (acc[booster] || 0) + 1;
-        return acc;
-      }, {});
+    // Add taskPoints to totalRewards and taskRewards
+    if (pointsToAdd > 0) {
+      user.totalRewards += pointsToAdd;
 
-      user.boosters = user.boosters.map(booster => {
-        if (boosterCounts[booster.type]) {
-          booster.count += boosterCounts[booster.type];
-          delete boosterCounts[booster.type]; // Remove processed booster type
-        }
-        return booster;
+      // Update taskPoints within taskRewards
+      user.taskRewards.taskPoints += pointsToAdd;
+
+      // Set the specific channel to true
+      user.taskRewards[channel] = true;
+      logger.info(
+        `Updated ${channel} to true and added ${pointsToAdd} task points for user with telegramId: ${telegramId}`
+      );
+
+      // Check for an existing userReward record for today and category "task"
+      let reward = await userReward.findOne({
+        telegramId,
+        date: currentDateString,
+        category: 'task',
       });
 
-      // Add new booster types
-      for (const [type, count] of Object.entries(boosterCounts)) {
-        user.boosters.push({ type, count });
+      if (reward) {
+        // Update the rewardPoints for today's record
+        reward.rewardPoints += pointsToAdd;
+        await reward.save();
+        logger.info(`Updated userReward for user ${telegramId} on ${currentDateString}`);
+      } else {
+        // Create a new userReward record for today
+        reward = new userReward({
+          category: 'task',
+          date: currentDateString,
+          rewardPoints: pointsToAdd,
+          userId: user._id,
+          telegramId,
+        });
+        await reward.save();
+        logger.info(`Created new userReward for user ${telegramId} on ${currentDateString}`);
       }
 
-      logger.info(`Updated boosters for user ${telegramId}`);
+      logger.info(`Added ${pointsToAdd} taskPoints to user ${telegramId}`);
     }
 
     // Update the user's level and levelUpRewards based on the new totalRewards
     updateLevel(user, currentDateString);
 
-    // Save the updated user
+    // Save the updated user document
     await user.save();
-    logger.info(`Successfully updated game rewards for user ${telegramId}`);
+
+    logger.info(
+      `Successfully added taskPoints and updated channel for user with telegramId: ${telegramId}`
+    );
 
     return res
       .status(200)
-      .json({ message: 'Game rewards updated successfully', user });
+      .json({ message: 'TaskPoints added successfully', user });
   } catch (err) {
     logger.error(
-      `Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
+      `Error processing task rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
     );
     next(err);
   }
 };
 
+
 module.exports = {
   login,
-  userGameRewards
+  userGameRewards,
+  userTaskRewards
 }
