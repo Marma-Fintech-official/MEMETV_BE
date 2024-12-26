@@ -13,16 +13,16 @@ const levelUpBonuses = [
 
 // Thresholds for level-ups based on totalRewards
 const thresholds = [
-  { limit: 500, level: 1 },
-  { limit: 10000, level: 2 },
-  { limit: 50000, level: 3 },
-  { limit: 200000, level: 4 },
-  { limit: 800000, level: 5 },
-  { limit: 3000000, level: 6 },
-  { limit: 10000000, level: 7 },
-  { limit: 25000000, level: 8 },
-  { limit: 50000000, level: 9 },
-  { limit: 80000000, level: 10 }
+  { limit: 0, rewardPerSecond: 1, level: 1 },
+  { limit: 10000, rewardPerSecond: 2, level: 2 },
+  { limit: 50000, rewardPerSecond: 3, level: 3 },
+  { limit: 200000, rewardPerSecond: 4, level: 4 },
+  { limit: 800000, rewardPerSecond: 5, level: 5 },
+  { limit: 3000000, rewardPerSecond: 6, level: 6 },
+  { limit: 10000000, rewardPerSecond: 7, level: 7 },
+  { limit: 25000000, rewardPerSecond: 8, level: 8 },
+  { limit: 50000000, rewardPerSecond: 9, level: 9 },
+  { limit: 80000000, rewardPerSecond: 10, level: 10 }
 ]
 
 // Milestones for referrals and associated rewards
