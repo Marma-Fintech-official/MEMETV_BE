@@ -48,6 +48,14 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 0
     },
+    streakRewards: {
+      type: Number,
+      default: 0
+    },
+    stakingRewards: {
+      type: Number,
+      default: 0
+    },
     taskRewards: {
       taskPoints: {
         type: Number,

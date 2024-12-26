@@ -6,7 +6,8 @@ const {
   userGameRewards,
   userTaskRewards,
   purchaseBooster,
-  purchaseGameCards
+  purchaseGameCards,
+  stakingRewards
 } = require('../controllers/userController')
 
 router.post(
@@ -67,6 +68,16 @@ router.post(
     })
   }),
   purchaseGameCards
+)
+
+router.post(
+  '/stakingRewards',
+  celebrate({
+    [Segments.BODY]: Joi.object().keys({
+      stakingId: Joi.string().required()
+    })
+  }),
+  stakingRewards
 )
 
 router.use(errors())
