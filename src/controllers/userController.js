@@ -2,6 +2,8 @@ const User = require('../models/userModel')
 const logger = require('../helpers/logger')
 const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
+const mongoose = require('mongoose')
+const { isValidObjectId } = mongoose
 const {
   levelUpBonuses,
   thresholds,
@@ -780,10 +782,81 @@ const purchaseGameCards = async (req, res, next) => {
   }
 }
 
+const stakingRewards = async (req, res, next) => {
+  try {
+    const { stakingId } = req.body;
+
+    // Validate stakingId
+    if (!isValidObjectId(stakingId)) {
+      logger.warn(`Invalid stakingId format: ${stakingId}`);
+      return res.status(400).json({ message: 'Invalid stakingId format' });
+    }
+
+    // Find the userDailyreward record with the matching stakingId
+    const userRewardRecord = await userDailyreward.findOne({ _id: stakingId });
+    if (!userRewardRecord) {
+      logger.warn(`UserDailyreward not found for stakingId: ${stakingId}`);
+      return res.status(404).json({ message: 'UserDailyreward not found' });
+    }
+
+    // Check if user has already staked
+    if (userRewardRecord.userStaking) {
+      logger.info(`User has already staked for stakingId: ${stakingId}`);
+      return res.status(400).json({ message: 'User has already staked' });
+    }
+
+    // Double the dailyEarnedRewards (e.g., 500 -> 1000)
+    const doubledReward = userRewardRecord.dailyEarnedRewards * 2;
+    userRewardRecord.dailyEarnedRewards = doubledReward; // Save the doubled value in the record
+    userRewardRecord.userStaking = true;  // Mark the user as staked
+    await userRewardRecord.save();
+
+    // Find the user in the User model
+    const user = await User.findOne({ _id: userRewardRecord.userId });
+    if (!user) {
+      logger.warn(`User not found in User model for userId: ${userRewardRecord.userId}`);
+      return res.status(404).json({ message: 'User not found in User model' });
+    }
+
+    // Add the original dailyEarnedRewards (500) to totalRewards, balanceRewards, and stakingRewards
+    user.totalRewards += userRewardRecord.dailyEarnedRewards / 2;    // Add original reward (500)
+    user.balanceRewards += userRewardRecord.dailyEarnedRewards / 2;  // Add original reward (500)
+    user.stakingRewards += userRewardRecord.dailyEarnedRewards / 2;  // Add original reward (500)
+
+    await user.save();  // Save the updated user data
+
+    // Create a new userReward record with category 'stake'
+    await userReward.create({
+      category: 'stake',
+      date: new Date(),
+      rewardPoints: userRewardRecord.dailyEarnedRewards / 2,  // Use the original reward (500) for userReward record
+      userId: user._id,
+      telegramId: user.telegramId,
+    });
+
+    logger.info(`Processed staking rewards for stakingId: ${stakingId}, added ${userRewardRecord.dailyEarnedRewards / 2} to user ${user._id}`);
+
+    res.status(200).json({
+      message: 'Staking rewards updated successfully',
+      user,
+    });
+  } catch (err) {
+    logger.error(`Error processing staking rewards for stakingId: ${req.body.stakingId} - ${err.message}`);
+    next(err);
+  }
+};
+
+
+
+
+
+
+
 module.exports = {
   login,
   userGameRewards,
   userTaskRewards,
   purchaseBooster,
-  purchaseGameCards
+  purchaseGameCards,
+  stakingRewards
 }

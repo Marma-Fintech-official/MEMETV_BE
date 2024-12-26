@@ -13,7 +13,12 @@ const calculatePhase = (currentDate, startDate) => {
   return Math.min(phase)
 }
 
-const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards) => {
+const updateUserDailyReward = async (
+  userId,
+  telegramId,
+  dailyEarnedRewards,
+  levelUpRewards = 0
+) => {
   const now = new Date()
   const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
@@ -22,27 +27,38 @@ const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards) => 
     let dailyReward = await userDailyreward.findOne({
       userId: userId,
       telegramId: telegramId,
-      createdAt: { $gte: new Date(currentDateString), $lt: new Date(new Date(currentDateString).setDate(now.getDate() + 1)) }
+      createdAt: {
+        $gte: new Date(currentDateString),
+        $lt: new Date(new Date(currentDateString).setDate(now.getDate() + 1))
+      }
     })
 
+    const totalDailyRewards = dailyEarnedRewards + levelUpRewards // Combine both earned rewards and level-up rewards
+
     if (dailyReward) {
-      // If a record exists, update the dailyEarnedRewards
-      dailyReward.dailyEarnedRewards += dailyEarnedRewards
+      // If a record exists, update the dailyEarnedRewards including levelUpRewards
+      dailyReward.dailyEarnedRewards += totalDailyRewards
       await dailyReward.save()
-      logger.info(`Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}`)
+      logger.info(
+        `Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}`
+      )
     } else {
-      // If no record exists, create a new one
+      // If no record exists, create a new one with combined rewards
       dailyReward = new userDailyreward({
         userId,
         telegramId,
-        dailyEarnedRewards,
-        createdAt: new Date(currentDateString),
+        dailyEarnedRewards: totalDailyRewards,
+        createdAt: new Date(currentDateString)
       })
       await dailyReward.save()
-      logger.info(`Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${dailyEarnedRewards}`)
+      logger.info(
+        `Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${totalDailyRewards}`
+      )
     }
   } catch (error) {
-    logger.error(`Error updating daily rewards for telegramId: ${telegramId} - ${error.message}`)
+    logger.error(
+      `Error updating daily rewards for telegramId: ${telegramId} - ${error.message}`
+    )
   }
 }
 
@@ -232,7 +248,12 @@ const userWatchRewards = async (req, res, next) => {
     )
 
     // Call the updateUserDailyReward function to handle daily rewards
-    await updateUserDailyReward(user._id, telegramId, totalRewards)
+    await updateUserDailyReward(
+      user._id,
+      telegramId,
+      totalRewards,
+      levelUpBonus
+    )
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
