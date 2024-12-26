@@ -1,22 +1,11 @@
 const User = require('../models/userModel')
-const mongoose = require('mongoose')
-const { isValidObjectId } = mongoose
+const {
+  levelUpBonuses,
+  thresholds,
+  milestones
+} = require('../helpers/constants')
+const userReward = require('../models/userRewardModel')
 const logger = require('../helpers/logger')
-
-const levelUpBonuses = [
-  // 500, Level 1 bonus, you reach 1000 its level2 you got level2 bonus points
-  1000, // Level 2 to Level 3
-  10000, // Level 3 to Level 4
-  50000, // Level 4 to Level 5
-  100000, // Level 5 to Level 6
-  500000, // Level 6 to Level 7
-  1000000, // Level 7 to Level 8
-  5000000, // Level 8 to Level 9
-  10000000, // Level 9 to Level 10
-  20000000 // Level 10 and above
-]
-
-
 
 const startDate = new Date('2024-12-03') // Project start date
 
@@ -29,7 +18,30 @@ const calculatePhase = (currentDate, startDate) => {
 
 const userWatchRewards = async (req, res, next) => {
   try {
-   
+    const {
+      telegramId,
+      userWatchSeconds,
+      boosterPoints = 0,
+      boosters
+    } = req.body
+
+    logger.info(
+      `Received request to process watch rewards for telegramId: ${telegramId}`
+    )
+
+    const now = new Date()
+    const currentPhase = calculatePhase(now, startDate)
+    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+
+    // Find the user by telegramId
+    const user = await User.findOne({ telegramId })
+
+    if (!user) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    logger.info(`User found for telegramId: ${telegramId}`)
   } catch (err) {
     logger.error(
       `Error processing rewards for telegramId: ${telegramId} - ${err.message}`
@@ -38,8 +50,6 @@ const userWatchRewards = async (req, res, next) => {
   }
 }
 
-
-
 module.exports = {
-  userWatchRewards,
+  userWatchRewards
 }
