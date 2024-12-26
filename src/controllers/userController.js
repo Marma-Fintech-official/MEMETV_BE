@@ -823,7 +823,7 @@ const stakingRewards = async (req, res, next) => {
     user.balanceRewards += userRewardRecord.dailyEarnedRewards / 2;  // Add original reward (500)
     user.stakingRewards += userRewardRecord.dailyEarnedRewards / 2;  // Add original reward (500)
 
-    await user.save();  // Save the updated user data
+
 
     // Create a new userReward record with category 'stake'
     await userReward.create({
@@ -833,6 +833,9 @@ const stakingRewards = async (req, res, next) => {
       userId: user._id,
       telegramId: user.telegramId,
     });
+
+    updateLevel(user)
+    await user.save();  // Save the updated user data
 
     logger.info(`Processed staking rewards for stakingId: ${stakingId}, added ${userRewardRecord.dailyEarnedRewards / 2} to user ${user._id}`);
 
@@ -845,12 +848,6 @@ const stakingRewards = async (req, res, next) => {
     next(err);
   }
 };
-
-
-
-
-
-
 
 module.exports = {
   login,
