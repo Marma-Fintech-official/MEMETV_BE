@@ -1,6 +1,7 @@
 const User = require('../models/userModel')
 const logger = require('../helpers/logger')
 const userReward = require('../models/userRewardModel')
+const userDailyreward = require('../models/userDailyrewardsModel')
 const {
   levelUpBonuses,
   thresholds,
@@ -18,7 +19,6 @@ const generateRefId = () => {
   }
   return result
 }
-
 
 const updateLevel = async user => {
   let currentLevel = user.level || 1
@@ -84,32 +84,32 @@ const calculatePhase = (currentDate, startDate) => {
 }
 
 const login = async (req, res, next) => {
-  let { name, referredById, telegramId } = req.body;
+  let { name, referredById, telegramId } = req.body
 
   try {
-    name = name.trim();
-    telegramId = telegramId.trim();
-    const refId = generateRefId(); // Generate a refId for new users
-    let user = await User.findOne({ telegramId });
-    const currentDate = new Date();
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0); // Set today's date at midnight for consistency
+    name = name.trim()
+    telegramId = telegramId.trim()
+    const refId = generateRefId() // Generate a refId for new users
+    let user = await User.findOne({ telegramId })
+    const currentDate = new Date()
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0) // Set today's date at midnight for consistency
 
     // Extract current year, month, and day
-    const currentYear = currentDate.getUTCFullYear();
-    const currentMonth = currentDate.getUTCMonth();
-    const currentDay = currentDate.getUTCDate();
+    const currentYear = currentDate.getUTCFullYear()
+    const currentMonth = currentDate.getUTCMonth()
+    const currentDay = currentDate.getUTCDate()
 
     // Calculate the current phase
-    const currentPhase = calculatePhase(currentDate, startDate);
+    const currentPhase = calculatePhase(currentDate, startDate)
 
-    let referringUser = null;
+    let referringUser = null
     if (referredById) {
-      referringUser = await User.findOne({ refId: referredById });
+      referringUser = await User.findOne({ refId: referredById })
 
       if (!referringUser) {
-        referredById = ''; // Reset if referring user is not found
-        console.error('Referring user not found');
+        referredById = '' // Reset if referring user is not found
+        console.error('Referring user not found')
       }
     }
 
@@ -127,16 +127,16 @@ const login = async (req, res, next) => {
         lastLogin: currentDate,
         level: 1,
         levelUpRewards: 500
-      });
+      })
 
-      await user.save();
+      await user.save()
 
       // Record level-up reward for new user (only on first login)
       const levelUpRewardRecord = await userReward.findOne({
         userId: user._id,
         category: 'levelUp',
         date: today
-      });
+      })
 
       if (!levelUpRewardRecord) {
         // If no record exists for today, create a new record for the first-time login
@@ -146,61 +146,61 @@ const login = async (req, res, next) => {
           rewardPoints: 500, // 500 reward for first-time login
           userId: user._id,
           telegramId: user.telegramId
-        });
-        await newLevelUpReward.save();
+        })
+        await newLevelUpReward.save()
       }
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
         if (!referringUser.refferalIds) {
-          referringUser.refferalIds = []; // Initialize if undefined
+          referringUser.refferalIds = [] // Initialize if undefined
         }
 
-        referringUser.refferalIds.push({ userId: user._id });
+        referringUser.refferalIds.push({ userId: user._id })
 
-        referringUser.totalRewards += 10000;
-        referringUser.balanceRewards += 10000;
-        referringUser.referRewards += 10000;
+        referringUser.totalRewards += 10000
+        referringUser.balanceRewards += 10000
+        referringUser.referRewards += 10000
 
-        const numberOfReferrals = referringUser.refferalIds.length;
-        let milestoneReward = 0;
+        const numberOfReferrals = referringUser.refferalIds.length
+        let milestoneReward = 0
 
         // Check for milestone rewards
         for (const milestone of milestones) {
           if (numberOfReferrals === milestone.referrals) {
-            milestoneReward += milestone.reward;
+            milestoneReward += milestone.reward
           }
         }
 
         if (milestoneReward > 0) {
-          referringUser.totalRewards += milestoneReward;
-          referringUser.balanceRewards += milestoneReward;
-          referringUser.referRewards += milestoneReward;
+          referringUser.totalRewards += milestoneReward
+          referringUser.balanceRewards += milestoneReward
+          referringUser.referRewards += milestoneReward
         }
 
         const twoXBooster = referringUser.boosters.find(
           booster => booster.type === '2x'
-        );
+        )
         if (twoXBooster) {
-          twoXBooster.count += 5;
+          twoXBooster.count += 5
         } else {
-          referringUser.boosters.push({ type: '2x', count: 5 });
+          referringUser.boosters.push({ type: '2x', count: 5 })
         }
 
-        updateLevel(referringUser);
-        await referringUser.save();
+        updateLevel(referringUser)
+        await referringUser.save()
 
         // Update the reward points for the referring user
         const referRewardRecord = await userReward.findOne({
           userId: referringUser._id,
           category: 'refer',
           date: today
-        });
+        })
 
         if (referRewardRecord) {
           // If a record exists for today, update the rewardPoints
-          referRewardRecord.rewardPoints += 10000 + milestoneReward;
-          await referRewardRecord.save();
+          referRewardRecord.rewardPoints += 10000 + milestoneReward
+          await referRewardRecord.save()
         } else {
           // If no record exists, create a new record for today
           const newReward = new userReward({
@@ -209,16 +209,16 @@ const login = async (req, res, next) => {
             rewardPoints: 10000 + milestoneReward,
             userId: referringUser._id,
             telegramId: referringUser.telegramId
-          });
-          await newReward.save();
+          })
+          await newReward.save()
         }
       }
     } else {
       // Existing user login logic
-      const lastLoginDate = new Date(user.lastLogin);
-      const lastLoginDay = lastLoginDate.getUTCDate();
-      const lastLoginMonth = lastLoginDate.getUTCMonth();
-      const lastLoginYear = lastLoginDate.getUTCFullYear();
+      const lastLoginDate = new Date(user.lastLogin)
+      const lastLoginDay = lastLoginDate.getUTCDate()
+      const lastLoginMonth = lastLoginDate.getUTCMonth()
+      const lastLoginYear = lastLoginDate.getUTCFullYear()
 
       if (
         currentYear > lastLoginYear ||
@@ -227,35 +227,33 @@ const login = async (req, res, next) => {
       ) {
         const levelUpBooster = user.boosters.find(
           booster => booster.type === 'levelUp'
-        );
+        )
 
         if (levelUpBooster) {
-          levelUpBooster.count += 1;
+          levelUpBooster.count += 1
         } else {
-          user.boosters.push({ type: 'levelUp', count: 1 });
+          user.boosters.push({ type: 'levelUp', count: 1 })
         }
       }
 
-      user.lastLogin = currentDate;
-      await user.save();
+      user.lastLogin = currentDate
+      await user.save()
     }
 
-    updateLevel(user);
+    updateLevel(user)
 
     res.status(201).json({
-      message: `User logged in successfully`,
+      message: 'User logged in successfully',
       user,
       currentPhase
-    });
+    })
   } catch (err) {
     logger.error(
-      `Error processing task rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
-    );
-    next(err);
+      `Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
+    )
+    next(err)
   }
-};
-
-
+}
 
 const userGameRewards = async (req, res, next) => {
   try {
@@ -293,6 +291,8 @@ const userGameRewards = async (req, res, next) => {
       }
     }
 
+    let dailyPoints = 0 // Track the rewards earned today
+
     // Update game points
     if (gamePoints) {
       const points = parseInt(gamePoints, 10)
@@ -303,6 +303,8 @@ const userGameRewards = async (req, res, next) => {
         // Add gamePoints to totalRewards
         user.totalRewards += points
         user.balanceRewards += points
+
+        dailyPoints += points
 
         // Check for an existing userReward record for today and category "game"
         let reward = await userReward.findOne({
@@ -364,6 +366,33 @@ const userGameRewards = async (req, res, next) => {
 
     // Update the user's level and levelUpRewards based on the new totalRewards
     updateLevel(user, currentDateString)
+
+    // Update the userDailyreward model for the current day
+    let dailyReward = await userDailyreward.findOne({
+      userId: user._id,
+      createdAt: { $gte: new Date(currentDateString) }
+    })
+
+    if (dailyReward) {
+      // Update the existing record
+      dailyReward.dailyEarnedRewards += dailyPoints
+      await dailyReward.save()
+      logger.info(
+        `Updated userDailyreward for user ${telegramId} on ${currentDateString}`
+      )
+    } else {
+      // Create a new daily reward record
+      dailyReward = new userDailyreward({
+        userId: user._id,
+        telegramId,
+        dailyEarnedRewards: dailyPoints,
+        createdAt: now
+      })
+      await dailyReward.save()
+      logger.info(
+        `Created new userDailyreward for user ${telegramId} on ${currentDateString}`
+      )
+    }
 
     // Save the updated user
     await user.save()
@@ -457,6 +486,32 @@ const userTaskRewards = async (req, res, next) => {
         await reward.save()
         logger.info(
           `Created new userReward for user ${telegramId} on ${currentDateString}`
+        )
+      }
+
+      // Update or create a userDailyreward record for today
+      const dailyReward = await userDailyreward.findOne({
+        telegramId,
+        createdAt: {
+          $gte: new Date(currentDateString),
+          $lt: new Date(currentDateString + 'T23:59:59')
+        }
+      })
+
+      if (dailyReward) {
+        dailyReward.dailyEarnedRewards += pointsToAdd
+        await dailyReward.save()
+        logger.info(
+          `Updated daily reward for user ${telegramId} on ${currentDateString}`
+        )
+      } else {
+        await userDailyreward.create({
+          userId: user._id,
+          telegramId,
+          dailyEarnedRewards: pointsToAdd
+        })
+        logger.info(
+          `Created new daily reward for user ${telegramId} on ${currentDateString}`
         )
       }
 
@@ -689,5 +744,5 @@ module.exports = {
   userGameRewards,
   userTaskRewards,
   purchaseBooster,
-  purchaseGameCards,
+  purchaseGameCards
 }
