@@ -2,7 +2,6 @@ const User = require('../models/userModel')
 const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
-
 const logger = require('../helpers/logger')
 
 const startDate = new Date('2024-12-03') // Project start date
@@ -12,6 +11,39 @@ const calculatePhase = (currentDate, startDate) => {
   const daysDifference = Math.floor((currentDate - startDate) / oneDay)
   const phase = Math.floor(daysDifference / 7) + 1
   return Math.min(phase)
+}
+
+const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards) => {
+  const now = new Date()
+  const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+
+  try {
+    // Check if a daily reward record already exists for today
+    let dailyReward = await userDailyreward.findOne({
+      userId: userId,
+      telegramId: telegramId,
+      createdAt: { $gte: new Date(currentDateString), $lt: new Date(new Date(currentDateString).setDate(now.getDate() + 1)) }
+    })
+
+    if (dailyReward) {
+      // If a record exists, update the dailyEarnedRewards
+      dailyReward.dailyEarnedRewards += dailyEarnedRewards
+      await dailyReward.save()
+      logger.info(`Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}`)
+    } else {
+      // If no record exists, create a new one
+      dailyReward = new userDailyreward({
+        userId,
+        telegramId,
+        dailyEarnedRewards,
+        createdAt: new Date(currentDateString),
+      })
+      await dailyReward.save()
+      logger.info(`Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${dailyEarnedRewards}`)
+    }
+  } catch (error) {
+    logger.error(`Error updating daily rewards for telegramId: ${telegramId} - ${error.message}`)
+  }
 }
 
 const userWatchRewards = async (req, res, next) => {
@@ -198,6 +230,9 @@ const userWatchRewards = async (req, res, next) => {
     logger.info(
       `User rewards and boosters updated successfully for telegramId: ${telegramId}`
     )
+
+    // Call the updateUserDailyReward function to handle daily rewards
+    await updateUserDailyReward(user._id, telegramId, totalRewards)
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
