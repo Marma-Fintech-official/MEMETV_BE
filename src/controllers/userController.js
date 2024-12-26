@@ -86,6 +86,7 @@ const calculatePhase = (currentDate, startDate) => {
   const phase = Math.floor(daysDifference / 7) + 1
   return Math.min(phase)
 }
+
 const login = async (req, res, next) => {
   let { name, referredById, telegramId } = req.body;
 
@@ -133,6 +134,25 @@ const login = async (req, res, next) => {
       });
 
       await user.save();
+
+      // Record level-up reward for new user (only on first login)
+      const levelUpRewardRecord = await userReward.findOne({
+        userId: user._id,
+        category: 'levelUp',
+        date: today
+      });
+
+      if (!levelUpRewardRecord) {
+        // If no record exists for today, create a new record for the first-time login
+        const newLevelUpReward = new userReward({
+          category: 'levelUp',
+          date: today,
+          rewardPoints: 500, // 500 reward for first-time login
+          userId: user._id,
+          telegramId: user.telegramId
+        });
+        await newLevelUpReward.save();
+      }
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -224,31 +244,6 @@ const login = async (req, res, next) => {
       await user.save();
     }
 
-    // Check if balanceRewards reach threshold for levelUp
-    if (user.balanceRewards >= 10000 && !user.levelUpRewardsIssued) {
-      // Issue level up reward once
-      const levelUpRewardRecord = await userReward.findOne({
-        userId: user._id,
-        category: 'levelUp',
-        date: today
-      });
-
-      if (!levelUpRewardRecord) {
-        const newReward = new userReward({
-          category: 'levelUp',
-          date: today,
-          rewardPoints: 500, // Default level-up reward
-          userId: user._id,
-          telegramId: user.telegramId
-        });
-        await newReward.save();
-
-        // Update user with levelUpRewardsIssued flag
-        user.levelUpRewardsIssued = true;
-        await user.save();
-      }
-    }
-
     updateLevel(user);
 
     res.status(201).json({
@@ -263,6 +258,7 @@ const login = async (req, res, next) => {
     next(err);
   }
 };
+
 
 
 const userGameRewards = async (req, res, next) => {
