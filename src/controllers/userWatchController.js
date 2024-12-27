@@ -274,6 +274,270 @@ const userWatchRewards = async (req, res, next) => {
   }
 }
 
+const userDetails = async (req, res, next) => {
+  try {
+    let { telegramId } = req.params
+
+    // Trim leading and trailing spaces
+    telegramId = telegramId.trim()
+
+    logger.info(
+      `Received request for user details with telegramId: ${telegramId}`
+    )
+
+    // Find the user detail document for the given telegramId
+    const userDetail = await User.findOne({ telegramId: telegramId })
+
+    // Check if user detail was found
+    if (!userDetail) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    logger.info(
+      `User details retrieved successfully for telegramId: ${telegramId}`
+    )
+
+    // Calculate the current phase
+    const currentDate = new Date()
+    const currentPhase = calculatePhase(currentDate, startDate)
+
+    // Add the currentPhase to the user details
+    const response = {
+      ...userDetail._doc, // Spread the user detail fields
+      currentPhase: currentPhase // Add the calculated phase
+    }
+
+    // Return the user details with the current phase in the response
+    return res.status(200).json(response)
+  } catch (err) {
+    logger.error(
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
+      }`
+    )
+    next(err)
+  }
+}
+
+const boosterDetails = async (req, res, next) => {
+  try {
+    let { telegramId } = req.params
+
+    // Log the incoming request
+    logger.info(
+      `Received request to fetch booster details for telegramId: ${telegramId}`
+    )
+
+    // Trim leading and trailing spaces
+    telegramId = telegramId.trim()
+
+    // Find the user detail document for the given telegramId
+    const userDetail = await User.findOne({ telegramId: telegramId })
+
+    // Check if user detail was found
+    if (!userDetail) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Log successful retrieval of user details
+    logger.info(
+      `User Boosters Details fetched successfully for telegramId: ${telegramId}`
+    )
+
+    // Return the boosters array along with other relevant user details
+    res.status(200).json({
+      message: 'User Boosters Details fetched successfully',
+      boosters: userDetail.boosters
+    })
+  } catch (err) {
+    logger.error(
+      `Error fetching booster details for telegramId: ${telegramId} - ${err.message}`
+    )
+    next(err)
+  }
+}
+
+const popularUser = async (req, res, next) => {
+  try {
+    let { telegramId } = req.params
+
+    // Trim leading and trailing spaces
+    telegramId = telegramId.trim()
+
+    // Log the incoming request
+    logger.info(
+      `Received request to retrieve popular user data for telegramId: ${telegramId}`
+    )
+
+    // Retrieve all users sorted by totalRewards in descending order
+    const allUsers = await User.find().sort({ balanceRewards: -1 })
+
+    // Find the rank of the specific user
+    const userIndex = allUsers.findIndex(user => user.telegramId === telegramId)
+
+    if (userIndex === -1) {
+      logger.warn(`User with telegramId: ${telegramId} not found`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Get the user details and rank
+    const userDetail = allUsers[userIndex]
+    const userRank = userIndex + 1 // Rank is index + 1
+
+    // Log the user rank and details
+    logger.info(
+      `User found: telegramId: ${telegramId}, rank: ${userRank}, totalRewards: ${userDetail.balanceRewards}`
+    )
+
+    // Format user details
+    const userFormattedDetail = {
+      rank: userRank,
+      telegramId: userDetail.telegramId,
+      name: userDetail.name,
+      level: userDetail.level,
+      balanceRewards: userDetail.balanceRewards
+    }
+
+    // Get the top 10 users
+    const topUsers = allUsers.slice(0, 10).map((user, index) => ({
+      rank: index + 1,
+      telegramId: user.telegramId,
+      name: user.name,
+      level: user.level,
+      balanceRewards: user.balanceRewards
+    }))
+
+    // Log the top 100 users retrieval
+    logger.info('Retrieved top 100 users successfully')
+
+    res.status(200).json({
+      topUsers,
+      yourDetail: userFormattedDetail
+    })
+  } catch (err) {
+    logger.error(
+      `Error retrieving popular user data for telegramId: ${telegramId} - ${err.message}`
+    )
+    next(err)
+  }
+}
+
+const yourReferrals = async (req, res, next) => {
+  try {
+    let { telegramId } = req.params
+    telegramId = telegramId.trim()
+
+    // Log the incoming request
+    logger.info(
+      `Received request to retrieve referrals for telegramId: ${telegramId}`
+    )
+
+    // Get pagination parameters from query, set defaults if not provided
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
+
+    // Log pagination details
+    logger.info(
+      `Pagination details - Page: ${page}, Limit: ${limit}, Skip: ${skip}`
+    )
+
+    // Find the user by telegramId
+    const user = await User.findOne({ telegramId })
+
+    if (!user) {
+      logger.warn(`User with telegramId: ${telegramId} not found`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Log the number of referrals
+    const totalReferrals = user.refferalIds.length
+    logger.info(`User found - Total Referrals: ${totalReferrals}`)
+
+    // Extract the userIds from the refferalIds array
+    const paginatedReferenceIds = user.refferalIds.slice(
+      skip,
+      skip + limit
+    )
+
+    const userIds = paginatedReferenceIds.map(ref => ref.userId)
+
+    // Find the referenced users and select the required fields
+    const referencedUsers = await User.find({ _id: { $in: userIds } }).select(
+      'name totalRewards'
+    )
+
+    // Log the number of referenced users found
+    logger.info(`Referenced users found: ${referencedUsers.length}`)
+
+    // Create a map of referenced users by their ID for quick lookup
+    const userMap = new Map()
+    referencedUsers.forEach(refUser => {
+      userMap.set(refUser._id.toString(), refUser)
+    })
+
+    // Construct the referrals response
+    const referrals = paginatedReferenceIds.map(ref => {
+      const refUser = userMap.get(ref.userId.toString())
+      return {
+        userId: ref.userId,
+        name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
+        totalRewards: refUser ? refUser.totalRewards : 0, // Handle case where referenced user is not found
+        createdAt: ref.createdAt
+      }
+    })
+
+    // Log the response details
+    logger.info(
+      `Referrals retrieved successfully for telegramId: ${telegramId}`
+    )
+
+    res.status(200).json({
+      referrals,
+      total: totalReferrals,
+      page,
+      limit,
+      totalPages: Math.ceil(totalReferrals / limit)
+    })
+  } catch (err) {
+    logger.error(
+      `Error retrieving referrals for telegramId: ${telegramId} - ${err.message}`
+    )
+    next(err)
+  }
+}
+
+const tutorialStatus = async (req, res, next) => {
+  try {
+    const { telegramId } = req.params;
+    const { tutorialStatus } = req.body;
+
+    // Find the user by telegramId and update the tutorialStatus
+    const updatedUser = await User.findOneAndUpdate(
+      { telegramId },
+      { tutorialStatus },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Tutorial status updated successfully', user: updatedUser });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
 module.exports = {
-  userWatchRewards
+  userWatchRewards,
+  userDetails,
+  boosterDetails,
+  popularUser,
+  yourReferrals,
+  tutorialStatus
 }
