@@ -74,10 +74,6 @@ const updateLevel = async user => {
     console.log('No level-up points to update.')
   }
 }
-
-
-
-
 const startDate = new Date('2024-12-03') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
