@@ -88,7 +88,6 @@ const userSchema = mongoose.Schema(
           type: Number, // Number of times this booster is available
           default: '',
         },
-        _id: false, // Disable automatic ObjectId for subdocuments
       },
     ],
     level: {

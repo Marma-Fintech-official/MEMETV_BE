@@ -10,7 +10,6 @@ const {
   taskStreakRewardClaim,
   multiStreakRewardClaim,
   streakOfStreakRewardClaim,
-  // unClaimedStreakRewardsClaim,
   updateClaimedLoginDaysArray,
   updateClaimedWatchDaysArray,
   updateClaimedReferDaysArray,
@@ -104,16 +103,6 @@ router.post(
   }),
   streakOfStreakRewardClaim
 )
-
-// router.post(
-//   "/unClaimedStreakRewardsClaim",
-//   celebrate({
-//     [Segments.BODY]: Joi.object().keys({
-//       telegramId: Joi.string().required()
-//     }),
-//   }),
-//   unClaimedStreakRewardsClaim
-// );
 
 router.post(
   '/updateClaimedLoginDaysArray',
