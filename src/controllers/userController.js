@@ -777,6 +777,37 @@ const purchaseGameCards = async (req, res, next) => {
       )
     }
 
+    const todayDailyRewardRecord = await userDailyreward.findOne({
+      telegramId,
+      createdAt: {
+        $gte: new Date(`${currentDateString}T00:00:00.000Z`),
+        $lt: new Date(`${currentDateString}T23:59:59.999Z`)
+      }
+    })
+
+    if (todayDailyRewardRecord) {
+      let remainingGamePoints = pointsToDeduct // Use a mutable variable
+
+      if (todayDailyRewardRecord.dailyEarnedRewards >= remainingGamePoints) {
+        todayDailyRewardRecord.dailyEarnedRewards -= remainingGamePoints
+      } else {
+        remainingGamePoints -= todayDailyRewardRecord.dailyEarnedRewards
+        todayDailyRewardRecord.dailyEarnedRewards = 0
+      }
+
+      await todayDailyRewardRecord.save()
+      logger.info(
+        `Updated dailyEarnedRewards for telegramId: ${telegramId}. Remaining rewards: ${todayDailyRewardRecord.dailyEarnedRewards}`
+      )
+    } else {
+      logger.warn(
+        `No daily rewards record found for today's date for telegramId: ${telegramId}`
+      )
+      return res
+        .status(400)
+        .json({ message: 'No daily rewards available for today' })
+    }
+
     return res.status(200).json({
       message: 'Game card purchased successfully',
       user
