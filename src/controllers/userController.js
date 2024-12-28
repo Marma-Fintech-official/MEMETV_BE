@@ -21,59 +21,77 @@ const generateRefId = () => {
 }
 
 const updateLevel = async user => {
-  let currentLevel = user.level || 1
-  let newLevel = currentLevel
-  let newLevelUpPoints = 0
+  let currentLevel = user.level || 1;
+  let newLevel = currentLevel;
+  let newLevelUpPoints = 0;
 
   // Loop through thresholds to determine new level
   for (const threshold of thresholds) {
     if (user.balanceRewards >= threshold.limit) {
-      newLevel = threshold.level
+      newLevel = threshold.level;
     } else {
-      break
+      break;
     }
   }
 
   // If the level has increased, calculate the level-up points
   if (newLevel > currentLevel) {
     for (let i = currentLevel; i < newLevel; i++) {
-      newLevelUpPoints += levelUpBonuses[i - 1]
+      newLevelUpPoints += levelUpBonuses[i - 1];
     }
-    user.totalRewards += newLevelUpPoints
-    user.balanceRewards += newLevelUpPoints
-    user.levelUpRewards += newLevelUpPoints
-    user.level = newLevel
+    user.totalRewards += newLevelUpPoints;
+    user.balanceRewards += newLevelUpPoints;
+    user.levelUpRewards += newLevelUpPoints;
+    user.level = newLevel;
   }
 
-  // Ensure that level-up rewards are added to the userReward model even if the level has not changed
-  const today = new Date()
-  today.setUTCHours(0, 0, 0, 0) // Reset time to midnight for today's date
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0); // Reset time to midnight for today's date
 
   // Check if the user has earned level-up points that need to be recorded for today
   const levelUpRewardRecord = await userReward.findOne({
     userId: user._id,
     category: 'levelUp',
     date: today
-  })
+  });
 
   if (!levelUpRewardRecord && newLevelUpPoints > 0) {
-    // If no record exists for today's level-up reward, create a new record for today
     const newLevelUpReward = new userReward({
       category: 'levelUp',
       date: today,
       rewardPoints: newLevelUpPoints,
       userId: user._id,
       telegramId: user.telegramId
-    })
-    await newLevelUpReward.save()
+    });
+    await newLevelUpReward.save();
   } else if (levelUpRewardRecord && newLevelUpPoints > 0) {
-    // If the record exists, update it with new level-up points
-    levelUpRewardRecord.rewardPoints += newLevelUpPoints
-    await levelUpRewardRecord.save()
-  } else {
-    console.log('No level-up points to update.')
+    levelUpRewardRecord.rewardPoints += newLevelUpPoints;
+    await levelUpRewardRecord.save();
   }
-}
+
+  // Reflect levelUpRewards in the userDailyreward model
+  if (newLevelUpPoints > 0) {
+    let dailyReward = await userDailyreward.findOne({
+      userId: user._id,
+      createdAt: { $gte: new Date(today) }
+    });
+
+    if (dailyReward) {
+      dailyReward.dailyEarnedRewards += newLevelUpPoints;
+      await dailyReward.save();
+    } else {
+      // Create a new daily reward record if none exists
+      dailyReward = new userDailyreward({
+        userId: user._id,
+        telegramId: user.telegramId,
+        dailyEarnedRewards: newLevelUpPoints,
+        createdAt: today
+      });
+      await dailyReward.save();
+    }
+  }
+};
+
 const startDate = new Date('2024-12-03') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
