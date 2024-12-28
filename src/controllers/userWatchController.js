@@ -1,5 +1,6 @@
 const User = require('../models/userModel')
 const userReward = require('../models/userRewardModel')
+const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 
 const logger = require('../helpers/logger')
@@ -98,23 +99,25 @@ const userWatchRewards = async (req, res, next) => {
       category: 'watch'
     })
 
+    const totalWatchRewardPoints = newRewards + parsedBoosterPoints // Calculate total reward points by adding newRewards and boosterPoints
+
     if (watchReward) {
-      watchReward.rewardPoints += newRewards
+      watchReward.rewardPoints += totalWatchRewardPoints // Add total reward points (including boosterPoints)
       await watchReward.save()
       logger.info(
-        `Updated watch reward for user ${telegramId} on ${currentDateString}`
+        `Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${totalWatchRewardPoints}`
       )
     } else {
       watchReward = new userReward({
         category: 'watch',
         date: currentDateString,
-        rewardPoints: newRewards,
+        rewardPoints: totalWatchRewardPoints, // Set the total reward points here
         userId: user._id,
         telegramId
       })
       await watchReward.save()
       logger.info(
-        `Created new watch reward for user ${telegramId} on ${currentDateString}`
+        `Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${totalWatchRewardPoints}`
       )
     }
 
