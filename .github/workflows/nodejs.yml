@@ -1,0 +1,76 @@
+name: Node.js CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+      
+      # Step 4: Set environment variables
+      - name: Set environment variables
+        run: |
+echo "DBURL=${{ secrets.DBURL }}" >> $GITHUB_ENV
+echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
+echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> $GITHUB_ENV
+
+      # Step 5: Run tests
+      - name: Run tests
+        run: npm start
+
+      # Step 6: Deploy to EC2
+      - name: Deploy to EC2
+        run: |
+mkdir -p ~/.ssh
+echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
+
+# SSH into EC2 and execute deployment commands
+ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+# Set deployment directory
+DEPLOY_DIR=/home/ubuntu/MEMETV_BE
+
+# Check if repository exists
+if [ ! -d "$DEPLOY_DIR" ]; then
+# Clone repository if it doesn't exist
+echo "Cloning repository..."
+git clone https://github.com/username/repo.git $DEPLOY_DIR
+cd $DEPLOY_DIR
+else
+# Pull latest changes if repository exists
+echo "Pulling latest changes..."
+cd $DEPLOY_DIR
+git pull origin main
+fi
+
+# Copy environment variables
+echo "DBURL=${{ secrets.DBURL }}" >> .env
+echo "PORT=${{ secrets.PORT }}" >> .env
+echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> .env
+
+# Install dependencies and restart application
+npm install
+pm2 restart all
+
+echo "Deployment completed successfully!"
+EOF
