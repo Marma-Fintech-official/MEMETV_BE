@@ -1,97 +1,62 @@
-const cluster = require('cluster')
-const os = require('os')
-const express = require('express')
-const mongoose = require('mongoose')
-const morgan = require('morgan')
-const helmet = require('helmet')
-const cors = require('cors')
-const cookieParser = require('cookie-parser')
-const TelegramBot = require('node-telegram-bot-api')
-const logger = require('./src/helpers/logger') // Import the custom logger
-require('dotenv').config()
-const rateLimit = require('express-rate-limit')
-if (cluster.isMaster) {
-  const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token)
+const cluster = require('cluster');
+const os = require('os');
+const { initializeExpress } = require('./src/config/express');
+const { connectDatabase } = require('./src/config/database');
+const { initializeTelegramBot } = require('./src/services/telegramBot');
+const logger = require('./src/helpers/logger');
+require('dotenv').config();
 
-  // Handle the /start command from Telegram
-  bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
-    const chatId = msg.chat.id
-    const referredId = match[1]
-    logger.info(`Received start command with referredId: ${referredId}`)
-    bot.sendMessage(
-      chatId,
-      'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points. Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: '#doNothing',
-                web_app: {
-                  url: `https://zippy-smakager-45b1ee.netlify.app/?start=${referredId}`
-                }
-              }
-            ]
-          ]
+class Application {
+    static async initialize() {
+        if (cluster.isMaster) {
+            await this.initializeMaster();
         }
-      }
-    )
-  })
+    }
 
-  const numCPUs = os.cpus().length
+    static async initializeMaster() {
+        try {
+            // Initialize Telegram Bot
+            await initializeTelegramBot();
 
-  //Fork workers for each CPU core
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork()
-  }
+            // Fork workers
+            this.forkWorkers();
 
-  const app = express()
+            // Initialize Express and Database
+            const app = initializeExpress();
+            await connectDatabase();
 
-  // Connect to MongoDB
-  mongoose
-    .connect(process.env.DBURL, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000
-    })
-    .then(() => {
-      logger.info(
-        '*********🛡️ 🔍  Successfully Connected to MongoDB 🛡️ 🔍 **********'
-      )
-    })
-    .catch(err => {
-      logger.error('MongoDB Connection Failure', err)
-    })
+            // Start server
+            this.startServer(app);
+        } catch (error) {
+            logger.error('Application initialization failed:', error);
+            process.exit(1);
+        }
+    }
 
-  // Middleware setup
-  app.use(cors())
-  app.use(express.json())
-  app.use(express.urlencoded({ extended: false }))
-  app.use(cookieParser())
-  app.use(helmet())
-  app.use(morgan('combined'))
+    static forkWorkers() {
+        const numCPUs = os.cpus().length;
+        for (let i = 0; i < numCPUs; i++) {
+            cluster.fork();
+        }
 
-  // Set up routes
-  const router = require('./src/routes/allRoutes')
-  app.use(router)
+        cluster.on('exit', (worker, code, signal) => {
+            logger.warn(`Worker ${worker.process.pid} died. Restarting...`);
+            cluster.fork();
+        });
+    }
 
-  app.get('/', (req, res) => {
-    res.send(' ***🔥🔥 TheMemeTv Backend Server is Running 🔥🔥*** ')
-  })
-
-  // Rate limiter
-  const limiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 1000 // Limit each IP to 1000 requests per window
-  })
-  app.use(limiter)
-
-  
-  // Listen on the specified port
-  const port = process.env.PORT || 8888
-  app.listen(port, () => {
-    logger.info(
-      `🏖️ 🔥  Worker ${process.pid} is listening on port ${port} 🏖️ 🔥 `
-    )
-  })
+    static startServer(app) {
+        const port = process.env.PORT || 8888;
+        app.listen(port, () => {
+            logger.info(
+                `🏖️ 🔥 Worker ${process.pid} is listening on port ${port} 🏖️ 🔥 `
+            );
+        });
+    }
 }
+
+// Start the application
+Application.initialize().catch(error => {
+    logger.error('Failed to start application:', error);
+    process.exit(1);
+});

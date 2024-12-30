@@ -197,7 +197,7 @@ const login = async (req, res, next) => {
           referringUser.boosters.push({ type: '2x', count: 5 })
         }
 
-        updateLevel(referringUser)
+        await updateLevel(referringUser)
         await referringUser.save()
 
         // Update the reward points for the referring user in `userReward` model
@@ -282,7 +282,7 @@ const login = async (req, res, next) => {
       await dailyReward.save()
     }
 
-    updateLevel(user)
+    await updateLevel(user)
 
     res.status(201).json({
       message: 'User logged in successfully',
@@ -300,6 +300,13 @@ const login = async (req, res, next) => {
 const userGameRewards = async (req, res, next) => {
   try {
     const { telegramId, boosters, gamePoints } = req.body
+
+    if (!telegramId || typeof telegramId !== 'string') {
+      throw new AppError('Invalid telegramId', 400);
+    }
+    if (gamePoints && (isNaN(gamePoints) || Number(gamePoints) < 0)) {
+        throw new AppError('Invalid gamePoints', 400);
+    }
 
     // Get the current date and time
     const now = new Date()
@@ -407,7 +414,7 @@ const userGameRewards = async (req, res, next) => {
     }
 
     // Update the user's level and levelUpRewards based on the new totalRewards
-    updateLevel(user, currentDateString)
+    await updateLevel(user, currentDateString)
 
     // Update the userDailyreward model for the current day
     let dailyReward = await userDailyreward.findOne({
@@ -561,7 +568,7 @@ const userTaskRewards = async (req, res, next) => {
     }
 
     // Update the user's level and levelUpRewards based on the new totalRewards
-    updateLevel(user, currentDateString)
+    await updateLevel(user, currentDateString)
 
     // Save the updated user document
     await user.save()
