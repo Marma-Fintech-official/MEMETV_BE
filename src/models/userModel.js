@@ -111,6 +111,10 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false
     },
+    userWalletAddress: {
+      type: String,
+      default: ''
+    },
     streak: {
       loginStreak: {
         loginStreakCount: {

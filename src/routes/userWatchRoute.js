@@ -7,7 +7,10 @@ const {
   boosterDetails,
   popularUser,
   yourReferrals,
-  tutorialStatus
+  tutorialStatus,
+  stakingHistory,
+  addWalletAddress,
+  dailyRewards
 } = require('../controllers/userWatchController')
 
 router.post(
@@ -76,6 +79,38 @@ router.post('/tutorialStatus/:telegramId',celebrate({
 }),
 tutorialStatus
 )
+
+router.get('/stakingHistory/:telegramId', celebrate({
+  [Segments.PARAMS]: Joi.object().keys({
+    telegramId: Joi.string().required()
+  }) 
+}),
+stakingHistory
+)
+
+router.post(
+  '/addWalletAddress/:telegramId',
+  celebrate({
+    [Segments.PARAMS]: Joi.object().keys({
+      telegramId: Joi.string().required()
+    }),
+    [Segments.BODY]: Joi.object().keys({
+      userWalletAddress: Joi.string().required()
+    })
+  }),
+  addWalletAddress
+)
+
+router.get(
+  '/dailyRewards/:telegramId',
+  celebrate({
+    [Segments.PARAMS]: Joi.object().keys({
+      telegramId: Joi.string().required()
+    })
+  }),
+  dailyRewards
+)
+
 
 
 router.use(errors())

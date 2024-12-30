@@ -527,9 +527,131 @@ const tutorialStatus = async (req, res, next) => {
 
     res.status(200).json({ message: 'Tutorial status updated successfully', user: updatedUser });
   } catch (err) {
+    logger.error(
+      `Error retrieving referrals for telegramId: ${telegramId} - ${err.message}`
+    )
     next(err);
   }
 };
+
+const stakingHistory = async (req, res, next) => {
+  try {
+    const { telegramId } = req.params;
+    const { page = 1 } = req.query; // Default to page 1 if no page is specified
+    const limit = 20;
+
+    // Calculate the number of records to skip based on the page
+    const skip = (page - 1) * limit;
+
+    // Find records with category "stake" and matching telegramId
+    const stakeRecords = await userReward
+      .find({
+        telegramId: telegramId,
+        category: "stake",
+      })
+      .skip(skip)
+      .limit(limit);
+
+    // Get total count of records for pagination
+    const totalCount = await userReward.countDocuments({
+      telegramId: telegramId,
+      category: "stake",
+    });
+
+    if (!stakeRecords || stakeRecords.length === 0) {
+      return res.status(404).json({
+        message: `No staking history found for telegramId: ${telegramId}`,
+      });
+    }
+
+    res.status(200).json({
+      message: `Staking history retrieved successfully for telegramId: ${telegramId}`,
+      data: stakeRecords,
+      pagination: {
+        totalRecords: totalCount,
+        currentPage: parseInt(page, 10),
+        totalPages: Math.ceil(totalCount / limit),
+        limit: limit,
+      },
+    });
+  } catch (err) {
+    logger.error(
+      `Error retrieving staking history for telegramId: ${req.params.telegramId} - ${err.message}`
+    );
+    next(err);
+  }
+};
+
+const addWalletAddress = async (req, res, next) => {
+  const { telegramId } = req.params
+  const { userWalletAddress } = req.body
+
+  try {
+    // Find the user by telegramId
+    const user = await User.findOne({ telegramId })
+
+    if (!user) {
+      // Log and return if the user is not found
+      logger.error(`User with telegramId: ${telegramId} not found`)
+      return res.status(404).json({
+        message: 'User not found'
+      })
+    }
+
+    // Update the user's wallet address (ensure correct field name)
+    user.userWalletAddress = userWalletAddress // Make sure this matches the field name in your schema
+    await user.save()
+
+    // Log success and respond
+    logger.info(`Wallet address updated for user: ${telegramId}`)
+    return res.status(200).json({
+      message: 'Wallet address updated successfully'
+    })
+  } catch (err) {
+    logger.error(
+      `Error updating wallet address for telegramId: ${telegramId} - ${err.message}`
+    )
+    next(err)
+  }
+}
+
+
+const dailyRewards = async (req, res, next) => {
+  try {
+    let { telegramId } = req.params;
+
+    // Log the incoming request
+    logger.info(
+      `Received request to calculate weekly rewards for telegramId: ${telegramId}`
+    );
+
+    // Trim leading and trailing spaces
+    telegramId = telegramId.trim();
+
+    // Find user by telegramId
+    const userDetail = await User.findOne({ telegramId: telegramId });
+
+    // Check if user exists
+    if (!userDetail) {
+      logger.warn(`User not found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    logger.info(
+      `User found for telegramId: ${telegramId}, calculating weekly rewards...`
+    );
+
+    // Define the start and end dates
+    const startDate = new Date('2024-12-03');
+   
+  } catch (err) {
+    logger.error(
+      `Error calculating weekly rewards for telegramId: ${telegramId} - ${err.message}`
+    );
+    next(err);
+  }
+};
+
 
 
 
@@ -539,5 +661,8 @@ module.exports = {
   boosterDetails,
   popularUser,
   yourReferrals,
-  tutorialStatus
+  tutorialStatus,
+  stakingHistory,
+  addWalletAddress,
+  dailyRewards
 }
