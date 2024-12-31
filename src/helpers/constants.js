@@ -40,8 +40,112 @@ const milestones = [
   { referrals: 50, reward: 333333 }
 ]
 
+
+// streak calculations
+const loginStreakReward = [100, 200, 400, 800, 1600, 3200, 6400];
+const watchStreakReward = [100, 200, 400, 800, 1600, 3200, 6400];
+const referStreakReward = [1000, 2000, 3000, 5000, 10000, 15000, 25000];
+const taskStreakReward = [100, 200, 400, 800, 1600, 3200, 6400];
+
+const multiStreakReward = [1300, 2100, 4200, 8400, 16800, 33600, 67200];
+
+const distributionEndDate = new Date("2025-03-10");
+
+const calculateDayDifference = async (lastDate) => {
+  let currentDate = new Date();
+  const currentDay = currentDate.toISOString().split("T")[0];
+  currentDate = new Date(currentDay);
+  let lastDay = lastDate.toISOString().split("T")[0];
+  lastDay = new Date(lastDay);
+  // Calculate the difference in milliseconds
+  const differenceInTime = currentDate.getTime() - lastDay.getTime();
+  // Convert the difference from milliseconds to days
+  const differenceInDays = differenceInTime / (1000 * 3600 * 24);
+  return differenceInDays;
+};
+
+//function to check start date in a week
+const checkStartDay = async (user)=>{
+  //will calculate day difference between curent date and distribution end
+  const res = Math.abs(await calculateDayDifference(distributionEndDate))+1;
+  if(res%7==0){
+    user.streak.startDay = 1;
+  }
+  else if(res%7==6){
+    user.streak.startDay = 2;
+  }
+  else if(res%7==5){
+    user.streak.startDay= 3;
+  }
+  else if(res%7==4){
+    user.streak.startDay = 4;
+  }
+  else if(res%7==3){
+    user.streak.startDay = 5;
+  }
+  else if(res%7==2){
+    user.streak.startDay= 6;
+  }
+  else if(res%7==1){
+    user.streak.startDay= 7;
+  }
+  return user.streak.startDay;
+}
+
+//function to set current day in a week
+const setCurrentDay = async (user)=>{
+  //will calculate day difference between current date and distribution end
+  const res = Math.abs(await calculateDayDifference(distributionEndDate))+1;
+  if(res%7==0){
+    user.streak.currentDay = 1;
+  }
+  else if(res%7==6){
+    user.streak.currentDay = 2;
+  }
+  else if(res%7==5){
+    user.streak.currentDay = 3;
+  }
+  else if(res%7==4){
+    user.streak.currentDay = 4;
+  }
+  else if(res%7==3){
+    user.streak.currentDay = 5;
+  }
+  else if(res%7==2){
+    user.streak.currentDay = 6;
+  }
+  else if(res%7==1){
+    user.streak.currentDay = 7;
+  }
+  return user.streak.currentDay;
+}
+
+const updateClaimedDayArray = (user,firstLogin)=>{
+  if(firstLogin){
+    const startDay = user.streak.startDay;
+    for(i=0;i<startDay-1;i++){
+
+      user.streak.claimedLoginDays[i]=true;
+      user.streak.claimedWatchDays[i]=true;
+      user.streak.claimedReferDays[i]=true;
+      user.streak.claimedTaskDays[i]=true;
+      user.streak.claimedMultiDays[i]=true;
+    }
+  }
+}
+
 module.exports = {
   levelUpBonuses,
   thresholds,
-  milestones
+  milestones,
+  loginStreakReward,
+  watchStreakReward,
+  referStreakReward,
+  taskStreakReward,
+  multiStreakReward,
+  calculateDayDifference,
+  checkStartDay,
+  setCurrentDay,
+  updateClaimedDayArray,
+  distributionEndDate
 }
