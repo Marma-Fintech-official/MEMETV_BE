@@ -10,6 +10,9 @@ const {
   milestones
 } = require('../helpers/constants')
 
+
+const TOTALREWARDS_LIMIT = 1000;
+
 // Function to generate a 5-character alphanumeric identifier
 const generateRefId = () => {
   const characters =
@@ -26,7 +29,6 @@ const updateLevel = async (user, isFromStaking = false) => {
   let currentLevel = user.level || 1;
   let newLevel = currentLevel;
   let newLevelUpPoints = 0;
-
   // Loop through thresholds to determine new level
   for (const threshold of thresholds) {
     if (user.balanceRewards >= threshold.limit) {
@@ -35,28 +37,32 @@ const updateLevel = async (user, isFromStaking = false) => {
       break;
     }
   }
-
   // If the level has increased, calculate the level-up points
   if (newLevel > currentLevel) {
     for (let i = currentLevel; i < newLevel; i++) {
       newLevelUpPoints += levelUpBonuses[i - 1];
     }
-    user.totalRewards += newLevelUpPoints;
-    user.balanceRewards += newLevelUpPoints;
-    user.levelUpRewards += newLevelUpPoints;
-    user.level = newLevel;
+    // Calculate available space under TOTALREWARDS_LIMIT
+    const availableSpace = TOTALREWARDS_LIMIT - user.balanceRewards;
+    // Only add level-up rewards that fit within the limit
+    const actualLevelUpPoints = Math.min(newLevelUpPoints, availableSpace);
+    // Update user's rewards and level if points are within the limit
+    if (actualLevelUpPoints > 0) {
+      user.totalRewards += actualLevelUpPoints;
+      user.balanceRewards += actualLevelUpPoints;
+      user.levelUpRewards = (user.levelUpRewards || 0) + actualLevelUpPoints;
+      user.level = newLevel;
+    }
+    newLevelUpPoints = actualLevelUpPoints; // Use actualLevelUpPoints for further logic
   }
-
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0); // Reset time to midnight for today's date
-
   // Record level-up reward in `userReward` model
   const levelUpRewardRecord = await userReward.findOne({
     userId: user._id,
     category: 'levelUp',
     date: today,
   });
-
   if (!levelUpRewardRecord && newLevelUpPoints > 0) {
     await new userReward({
       category: 'levelUp',
@@ -69,14 +75,12 @@ const updateLevel = async (user, isFromStaking = false) => {
     levelUpRewardRecord.rewardPoints += newLevelUpPoints;
     await levelUpRewardRecord.save();
   }
-
   // Add to userDailyrewardSchema only if it's not from staking
   if (newLevelUpPoints > 0 && !isFromStaking) {
     let dailyReward = await userDailyreward.findOne({
       userId: user._id,
       createdAt: { $gte: today },
     });
-
     if (dailyReward) {
       dailyReward.dailyEarnedRewards += newLevelUpPoints;
       await dailyReward.save();
@@ -294,240 +298,259 @@ const login = async (req, res, next) => {
   }
 }
 
+
+
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = req.body
+    const { telegramId, boosters, gamePoints } = req.body;
 
-    // Get the current date and time
-    const now = new Date()
-    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+    const now = new Date();
+    const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-    logger.info(
-      `Received request to add game rewards for user with telegramId: ${telegramId}`
-    )
+    logger.info(`Received request to add game rewards for user with telegramId: ${telegramId}`);
 
-    // Find the user by telegramId
-    const user = await User.findOne({ telegramId })
+    const user = await User.findOne({ telegramId });
 
     if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
+      logger.warn(`User not found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if the current date is earlier than the last update date
     if (user.gameRewards && user.gameRewards.createdAt) {
-      const lastUpdateDate = new Date(user.gameRewards.createdAt)
-      const lastUpdateDateString = lastUpdateDate.toISOString().split('T')[0]
+      const lastUpdateDate = new Date(user.gameRewards.createdAt);
+      const lastUpdateDateString = lastUpdateDate.toISOString().split('T')[0];
 
       if (currentDateString < lastUpdateDateString) {
-        logger.warn(
-          `Attempt to update game rewards to an earlier date for user ${telegramId}`
-        )
+        logger.warn(`Attempt to update game rewards to an earlier date for user ${telegramId}`);
         return res.status(403).json({
           message: `Game Rewards cannot be updated to an earlier date.`,
           user
-        })
+        });
       }
     }
 
-    let dailyPoints = 0 // Track the rewards earned today
+    // Calculate the available space for totalRewards across all users
+    const totalRewardsInSystem = await User.aggregate([
+      { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+    ]);
 
-    // Update game points
+    const totalRewardsUsed = totalRewardsInSystem[0] ? totalRewardsInSystem[0].total : 0;
+    const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+    if (availableSpace <= 0) {
+      logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+      });
+    }
+
+    let dailyPoints = 0; // Track the rewards earned today
+
     if (gamePoints) {
-      const points = parseInt(gamePoints, 10)
+      const points = parseInt(gamePoints);
       if (!isNaN(points) && points > 0) {
-        user.gameRewards.gamePoints += points
-        user.gameRewards.createdAt = now
+        // Calculate the allowable points to add to this user's balance
+        const userAvailableSpace = TOTALREWARDS_LIMIT - user.balanceRewards;
+        const allowedPoints = Math.min(points, userAvailableSpace, availableSpace);
 
-        // Add gamePoints to totalRewards
-        user.totalRewards += points
-        user.balanceRewards += points
+        if (allowedPoints > 0) {
+          user.gameRewards.gamePoints += allowedPoints;
+          user.gameRewards.createdAt = now;
 
-        dailyPoints += points
+          user.totalRewards += allowedPoints;
+          user.balanceRewards += allowedPoints;
 
-        // Check for an existing userReward record for today and category "game"
-        let reward = await userReward.findOne({
-          telegramId,
-          date: currentDateString,
-          category: 'game'
-        })
+          dailyPoints += allowedPoints;
 
-        if (reward) {
-          // Update the rewardPoints for today's record
-          reward.rewardPoints += points
-          await reward.save()
-          logger.info(
-            `Updated userReward for user ${telegramId} on ${currentDateString}`
-          )
-        } else {
-          // Create a new userReward record for today
-          reward = new userReward({
-            category: 'game',
+          let reward = await userReward.findOne({
+            telegramId,
             date: currentDateString,
-            rewardPoints: points,
-            userId: user._id,
-            telegramId
-          })
-          await reward.save()
-          logger.info(
-            `Created new userReward for user ${telegramId} on ${currentDateString}`
-          )
+            category: 'game'
+          });
+
+          if (reward) {
+            reward.rewardPoints += allowedPoints;
+            await reward.save();
+            logger.info(`Updated userReward for user ${telegramId} on ${currentDateString}`);
+          } else {
+            reward = new userReward({
+              category: 'game',
+              date: currentDateString,
+              rewardPoints: allowedPoints,
+              userId: user._id,
+              telegramId
+            });
+            await reward.save();
+            logger.info(`Created new userReward for user ${telegramId} on ${currentDateString}`);
+          }
+
+          logger.info(`Added ${allowedPoints} gamePoints to user ${telegramId}`);
+        } else {
+          logger.warn(`No points could be added for user ${telegramId} due to reward limits.`);
         }
 
-        logger.info(`Added ${points} gamePoints to user ${telegramId}`)
+        if (points > allowedPoints) {
+          logger.warn(`Only ${allowedPoints} out of ${points} gamePoints were added for user ${telegramId}.`);
+        }
       } else {
-        logger.warn(`Invalid gamePoints value: ${gamePoints}`)
+        logger.warn(`Invalid gamePoints value: ${gamePoints}`);
       }
     }
 
-    // Update boosters
+    // Update boosters (unchanged logic)
     if (Array.isArray(boosters) && boosters.length > 0) {
       const boosterCounts = boosters.reduce((acc, booster) => {
-        acc[booster] = (acc[booster] || 0) + 1
-        return acc
-      }, {})
+        acc[booster] = (acc[booster] || 0) + 1;
+        return acc;
+      }, {});
 
       user.boosters = user.boosters.map(booster => {
         if (boosterCounts[booster.type]) {
-          booster.count += boosterCounts[booster.type]
-          delete boosterCounts[booster.type] // Remove processed booster type
+          booster.count += boosterCounts[booster.type];
+          delete boosterCounts[booster.type];
         }
-        return booster
-      })
+        return booster;
+      });
 
-      // Add new booster types
       for (const [type, count] of Object.entries(boosterCounts)) {
-        user.boosters.push({ type, count })
+        user.boosters.push({ type, count });
       }
 
-      logger.info(`Updated boosters for user ${telegramId}`)
+      logger.info(`Updated boosters for user ${telegramId}`);
     }
 
-    // Update the user's level and levelUpRewards based on the new totalRewards
-    // await updateLevel(user, false, currentDateString)
-    await updateLevel(user, false); // Do not pass `isFromStaking`, so it will add to `userDailyrewardSchema`
+    await updateLevel(user, false);
 
-
-    // Update the userDailyreward model for the current day
     let dailyReward = await userDailyreward.findOne({
       userId: user._id,
       createdAt: { $gte: new Date(currentDateString) }
-    })
+    });
 
     if (dailyReward) {
-      // Update the existing record
-      dailyReward.dailyEarnedRewards += dailyPoints
-      await dailyReward.save()
-      logger.info(
-        `Updated userDailyreward for user ${telegramId} on ${currentDateString}`
-      )
+      dailyReward.dailyEarnedRewards += dailyPoints;
+      await dailyReward.save();
+      logger.info(`Updated userDailyreward for user ${telegramId} on ${currentDateString}`);
     } else {
-      // Create a new daily reward record
       dailyReward = new userDailyreward({
         userId: user._id,
         telegramId,
         dailyEarnedRewards: dailyPoints,
         createdAt: now
-      })
-      await dailyReward.save()
-      logger.info(
-        `Created new userDailyreward for user ${telegramId} on ${currentDateString}`
-      )
+      });
+      await dailyReward.save();
+      logger.info(`Created new userDailyreward for user ${telegramId} on ${currentDateString}`);
     }
 
-    // Save the updated user
-    await user.save()
-    logger.info(`Successfully updated game rewards for user ${telegramId}`)
+    await user.save();
+    logger.info(`Successfully updated game rewards for user ${telegramId}`);
 
-    return res
-      .status(200)
-      .json({ message: 'Game rewards updated successfully', user })
+    return res.status(200).json({
+      message: 'Game rewards updated successfully',
+      user
+    });
   } catch (err) {
-    logger.error(
-      `Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
-    )
-    next(err)
+    logger.error(`Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`);
+    next(err);
   }
-}
+};
+
 
 const userTaskRewards = async (req, res, next) => {
   try {
-    const { telegramId, taskPoints, channel } = req.body
+    const { telegramId, taskPoints, channel } = req.body;
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`
-    )
+    );
 
     // Find the user by telegramId
-    const user = await User.findOne({ telegramId })
+    const user = await User.findOne({ telegramId });
 
     if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
+      logger.warn(`User not found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    const now = new Date() // Get current date and time
-    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+    const now = new Date(); // Get current date and time
+    const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
     // Ensure taskPoints is a Number
-    const pointsToAdd = Number(taskPoints) || 0
+    const pointsToAdd = Number(taskPoints) || 0;
 
     // Check if the specific channel is already true (rewards already claimed)
     if (channel && user.taskRewards.hasOwnProperty(channel)) {
       if (user.taskRewards[channel]) {
         logger.warn(
           `Rewards for ${channel} have already been claimed by user with telegramId: ${telegramId}`
-        )
+        );
         return res.status(400).json({
           message: `Rewards for ${channel} have already been claimed.`
-        })
+        });
       }
     } else {
-      logger.warn(`Invalid channel: ${channel}`)
-      return res.status(400).json({ message: 'Invalid channel provided.' })
+      logger.warn(`Invalid channel: ${channel}`);
+      return res.status(400).json({ message: 'Invalid channel provided.' });
     }
 
-    // Add taskPoints to totalRewards and taskRewards
-    if (pointsToAdd > 0) {
-      user.totalRewards += pointsToAdd
-      user.balanceRewards += pointsToAdd
+    // Calculate the available space for totalRewards across all users
+    const totalRewardsInSystem = await User.aggregate([
+      { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+    ]);
+
+    const totalRewardsUsed = totalRewardsInSystem[0] ? totalRewardsInSystem[0].total : 0;
+    const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+    if (availableSpace <= 0) {
+      logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+      });
+    }
+
+    // Calculate allowable points to add
+    const userAvailableSpace = TOTALREWARDS_LIMIT - user.balanceRewards;
+    const allowedPoints = Math.min(pointsToAdd, userAvailableSpace, availableSpace);
+
+    if (allowedPoints > 0) {
+      user.totalRewards += allowedPoints;
+      user.balanceRewards += allowedPoints;
 
       // Update taskPoints within taskRewards
-      user.taskRewards.taskPoints += pointsToAdd
+      user.taskRewards.taskPoints += allowedPoints;
 
       // Set the specific channel to true
-      user.taskRewards[channel] = true
+      user.taskRewards[channel] = true;
       logger.info(
-        `Updated ${channel} to true and added ${pointsToAdd} task points for user with telegramId: ${telegramId}`
-      )
+        `Updated ${channel} to true and added ${allowedPoints} task points for user with telegramId: ${telegramId}`
+      );
 
       // Check for an existing userReward record for today and category "task"
       let reward = await userReward.findOne({
         telegramId,
         date: currentDateString,
         category: 'task'
-      })
+      });
 
       if (reward) {
         // Update the rewardPoints for today's record
-        reward.rewardPoints += pointsToAdd
-        await reward.save()
+        reward.rewardPoints += allowedPoints;
+        await reward.save();
         logger.info(
           `Updated userReward for user ${telegramId} on ${currentDateString}`
-        )
+        );
       } else {
         // Create a new userReward record for today
         reward = new userReward({
           category: 'task',
           date: currentDateString,
-          rewardPoints: pointsToAdd,
+          rewardPoints: allowedPoints,
           userId: user._id,
           telegramId
-        })
-        await reward.save()
+        });
+        await reward.save();
         logger.info(
           `Created new userReward for user ${telegramId} on ${currentDateString}`
-        )
+        );
       }
 
       // Update or create a userDailyreward record for today
@@ -537,52 +560,61 @@ const userTaskRewards = async (req, res, next) => {
           $gte: new Date(currentDateString),
           $lt: new Date(currentDateString + 'T23:59:59')
         }
-      })
+      });
 
       if (dailyReward) {
-        dailyReward.dailyEarnedRewards += pointsToAdd
-        await dailyReward.save()
+        dailyReward.dailyEarnedRewards += allowedPoints;
+        await dailyReward.save();
         logger.info(
           `Updated daily reward for user ${telegramId} on ${currentDateString}`
-        )
+        );
       } else {
         dailyReward = new userDailyreward({
           userId: user._id,
           telegramId,
-          dailyEarnedRewards: pointsToAdd
+          dailyEarnedRewards: allowedPoints
         });
         await dailyReward.save();
 
         logger.info(
           `Created new daily reward for user ${telegramId} on ${currentDateString}`
-        )
+        );
       }
 
-      logger.info(`Added ${pointsToAdd} taskPoints to user ${telegramId}`)
+      logger.info(`Added ${allowedPoints} taskPoints to user ${telegramId}`);
+    } else {
+      logger.warn(
+        `No points could be added for user ${telegramId} due to reward limits.`
+      );
+    }
+
+    if (pointsToAdd > allowedPoints) {
+      logger.warn(
+        `Only ${allowedPoints} out of ${pointsToAdd} task points were added for user ${telegramId}.`
+      );
     }
 
     // Update the user's level and levelUpRewards based on the new totalRewards
-    // await updateLevel(user, false, currentDateString)
-    await updateLevel(user, false); // Do not pass `isFromStaking`, so it will add to `userDailyrewardSchema`
-
+    await updateLevel(user, false);
 
     // Save the updated user document
-    await user.save()
+    await user.save();
 
     logger.info(
       `Successfully added taskPoints and updated channel for user with telegramId: ${telegramId}`
-    )
+    );
 
     return res
       .status(200)
-      .json({ message: 'TaskPoints added successfully', user })
+      .json({ message: 'TaskPoints added successfully', user });
   } catch (err) {
     logger.error(
       `Error processing task rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
-    )
-    next(err)
+    );
+    next(err);
   }
-}
+};
+
 
 const purchaseBooster = async (req, res, next) => {
   try {
