@@ -11,7 +11,8 @@ const {
   checkStartDay,
   setCurrentDay,
   updateClaimedDayArray,
-  distributionStartDate
+  distributionStartDate,
+  GLOBAL_REWARD_LIMIT 
 }=require('../helpers/constants');
 const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
 require("dotenv").config();
@@ -756,6 +757,8 @@ const loginStreakRewardClaim = async (req, res, next) => {
       // Add to total rewards and streak rewards of the user
       user.totalRewards += rewardAmount;
       user.streakRewards += rewardAmount;
+      user.balanceRewards += rewardAmount;
+
 
       // Set the claimed reward to 0
       user.streak.loginStreak.loginStreakReward[index] = 0;
@@ -776,6 +779,7 @@ const loginStreakRewardClaim = async (req, res, next) => {
         message: "Login Streak Rewards claimed successfully",
         loginStreak: user.streak.loginStreak,
         totalRewards: user.totalRewards,
+        balanceRewards : user.balanceRewards
       });
     } else {
       logger.warn(`No Login Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
@@ -812,6 +816,7 @@ const watchStreakRewardClaim = async (req, res, next) => {
       // Add to total rewards and streak rewards of the user
       user.totalRewards += rewardAmount;
       user.streakRewards += rewardAmount;
+      user.balanceRewards += rewardAmount;
 
       // Set the claimed reward to 0
       user.streak.watchStreak.watchStreakReward[index] = 0;
@@ -831,6 +836,7 @@ const watchStreakRewardClaim = async (req, res, next) => {
         message: "Watch Streak Rewards claimed successfully",
         watchStreak: user.streak.watchStreak,
         totalRewards: user.totalRewards,
+        balanceRewards : user.balanceRewards
       });
     } else {
       logger.warn(`No Watch Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
@@ -866,7 +872,7 @@ const referStreakRewardClaim = async (req, res, next) => {
       // Add to total rewards and streak rewards of the user
       user.totalRewards += rewardAmount;
       user.streakRewards += rewardAmount;
-
+      user.balanceRewards += rewardAmount;
       // Set the claimed reward to 0
       user.streak.referStreak.referStreakReward[index] = 0;
 
@@ -885,6 +891,7 @@ const referStreakRewardClaim = async (req, res, next) => {
         message: "Refer Streak Rewards claimed successfully",
         referStreak: user.streak.referStreak,
         totalRewards: user.totalRewards,
+        balanceRewards : user.balanceRewards
       });
     } else {
       logger.warn(`No Refer Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
@@ -920,6 +927,7 @@ const taskStreakRewardClaim = async (req, res, next) => {
       // Add to total rewards and streak rewards of the user
       user.totalRewards += rewardAmount;
       user.streakRewards += rewardAmount;
+      user.balanceRewards += rewardAmount;
 
       // Set the claimed reward to 0
       user.streak.taskStreak.taskStreakReward[index] = 0;
@@ -939,6 +947,7 @@ const taskStreakRewardClaim = async (req, res, next) => {
         message: "Task Streak Rewards claimed successfully",
         TaskStreak: user.streak.taskStreak,
         totalRewards: user.totalRewards,
+        balanceRewards : user.balanceRewards
       });
     } else {
       logger.warn(`No Task Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
@@ -974,6 +983,7 @@ const multiStreakRewardClaim = async (req, res, next) => {
       // Add to total rewards and streak rewards of the user
       user.totalRewards += rewardAmount;
       user.streakRewards += rewardAmount;
+      user.balanceRewards += rewardAmount;
 
       // Set the claimed reward to 0
       user.streak.multiStreak.multiStreakReward[index] = 0;
@@ -993,6 +1003,7 @@ const multiStreakRewardClaim = async (req, res, next) => {
         message: "Multi Streak Rewards claimed successfully",
         multiStreak: user.streak.multiStreak,
         totalRewards: user.totalRewards,
+        balanceRewards : user.balanceRewards
       });
     } else {
       logger.warn(`No Multi Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
@@ -1033,6 +1044,8 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
       user.totalRewards += rewardAmount;
       // Add to streak reward of users
       user.streakRewards += rewardAmount;
+      user.balanceRewards += rewardAmount;
+
       for (let i = 0; i < user.streak.multiStreak.streakOfStreakRewards.length; i++) {
         user.streak.multiStreak.streakOfStreakRewards[i] = 0;
       }
@@ -1049,6 +1062,8 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
         multiStreak: user.streak.multiStreak,
         SOSRewardClaimed: rewardAmount,
         totalRewards: user.totalRewards,
+                balanceRewards : user.balanceRewards
+
       });
     } else {
       logger.warn(`No Streak of Streak rewards to claim for telegramId: ${telegramId}`);
