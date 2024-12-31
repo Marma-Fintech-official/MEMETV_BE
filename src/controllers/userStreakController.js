@@ -11,10 +11,10 @@ const {
   checkStartDay,
   setCurrentDay,
   updateClaimedDayArray,
-  distributionEndDate
+  distributionStartDate
 }=require('../helpers/constants');
+const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
 require("dotenv").config();
-
 
 const saveStreakReward = async (user, rewardPoints) => {
   try {
@@ -49,6 +49,33 @@ const saveStreakReward = async (user, rewardPoints) => {
   }
 };
 
+const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+
+    // Find or create a daily reward record for today
+    let dailyReward = await UserDailyReward.findOne({ userId, telegramId, createdAt: { $gte: new Date(today) } });
+
+    if (dailyReward) {
+      // Update the existing daily reward
+      dailyReward.dailyEarnedRewards += reward;
+      dailyReward.updatedAt = new Date();
+    } else {
+      // Create a new record if none exists for today
+      dailyReward = new UserDailyReward({
+        userId,
+        telegramId,
+        dailyEarnedRewards: rewardAmount,
+        createdAt: new Date()
+      });
+    }
+
+    await dailyReward.save(); // Save the record
+    console.log(`Daily rewards updated for user ${telegramId}: ${reward} added.`);
+  } catch (error) {
+    console.error(`Error updating daily rewards for user ${telegramId}: ${error.message}`);
+  }
+};
 
 const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
   const currentDate = new Date();
@@ -491,16 +518,16 @@ const streak = async (req, res, next) => {
     const currentDay = currentDate.toISOString().split("T")[0];
     currentDate = new Date(currentDay);
 
-    if (currentDate > distributionEndDate) {
-      logger.warn(`Distribution period completed for telegramId: ${telegramId}`);
-      return res.status(400).json({ message: "Distribution Completed" });
+    if (currentDate < distributionStartDate) {
+      logger.warn(`Distribution period has not started for telegramId for telegramId: ${telegramId}`);
+      return res.status(400).json({ message: "Distribution Not Started" });
     }
 
     // Calculate the difference in milliseconds
     const differenceInTime =
-      Math.abs(currentDate.getTime() - distributionEndDate.getTime()) + 1;
+      Math.abs(currentDate.getTime() - distributionStartDate.getTime());
     // Convert the difference from milliseconds to days
-    const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24));
+    const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24))-1;
 
     // Calculate streaks
     const login = await calculateLoginStreak(
@@ -653,16 +680,16 @@ const streakOfStreak = async (req, res, next) => {
     const currentDay = currentDate.toISOString().split("T")[0];
     currentDate = new Date(currentDay);
 
-    if (currentDate > distributionEndDate) {
-      logger.warn(`Distribution period completed for telegramId: ${telegramId}`);
-      return res.status(400).json({ message: "Distribution Completed" });
+    if (currentDate < distributionStartDate) {
+      logger.warn(`Distribution period is not started for telegramId: ${telegramId}`);
+      return res.status(400).json({ message: "Distribution period is not started" });
     }
 
     // Calculate the difference in milliseconds
     const differenceInTime =
-      Math.abs(currentDate.getTime() - distributionEndDate.getTime()) + 1;
+      Math.abs(currentDate.getTime() - distributionStartDate.getTime());
     // Convert the difference from milliseconds to days
-    const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24));
+    const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24))-1;
 
     const todaysLogin =
       ((user.streak.loginStreak.loginStreakDate.toISOString().split("T")[0]) === currentDay &&
@@ -699,6 +726,7 @@ const streakOfStreak = async (req, res, next) => {
       res.status(400).json({ message: "User has not completed all streaks" });
     }
   } catch (err) {
+    const telegramId = req.body?.telegramId || 'unknown';
     logger.error(`Error while updating Streak of Streak rewards for telegramId: ${telegramId}. Error: ${err.message}`);
     next(err);
   }
@@ -739,6 +767,8 @@ const loginStreakRewardClaim = async (req, res, next) => {
       await user.save();
       // Save the reward record
       await saveStreakReward(user, rewardAmount);
+      await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
+
 
       logger.info(`Login Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
@@ -793,6 +823,7 @@ const watchStreakRewardClaim = async (req, res, next) => {
       await user.save();
        // Save the reward record
        await saveStreakReward(user, rewardAmount);
+       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
 
       logger.info(`Watch Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
@@ -846,6 +877,7 @@ const referStreakRewardClaim = async (req, res, next) => {
       await user.save();
        // Save the reward record
        await saveStreakReward(user, rewardAmount);
+       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
 
       logger.info(`Refer Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
@@ -899,6 +931,7 @@ const taskStreakRewardClaim = async (req, res, next) => {
       await user.save();
        // Save the reward record
        await saveStreakReward(user, rewardAmount);
+       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
 
       logger.info(`Task Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
@@ -952,6 +985,7 @@ const multiStreakRewardClaim = async (req, res, next) => {
       await user.save();
        // Save the reward record
        await saveStreakReward(user, rewardAmount);
+       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
 
       logger.info(`Multi Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
@@ -1006,6 +1040,7 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
       await user.save();
       // Save the reward record
       await saveStreakReward(user, rewardAmount);
+      await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
 
       logger.info(`Streak of Streak Rewards claimed successfully for telegramId: ${telegramId}`);
 
