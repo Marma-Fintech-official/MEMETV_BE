@@ -615,15 +615,12 @@ const addWalletAddress = async (req, res, next) => {
   }
 }
 
-
 const dailyRewards = async (req, res, next) => {
   try {
     let { telegramId } = req.params;
 
     // Log the incoming request
-    logger.info(
-      `Received request to calculate weekly rewards for telegramId: ${telegramId}`
-    );
+    logger.info(`Received request to calculate daily rewards for telegramId: ${telegramId}`);
 
     // Trim leading and trailing spaces
     telegramId = telegramId.trim();
@@ -637,20 +634,27 @@ const dailyRewards = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    logger.info(
-      `User found for telegramId: ${telegramId}, calculating weekly rewards...`
-    );
+    logger.info(`User found for telegramId: ${telegramId}, fetching daily rewards...`);
 
-    // Define the start and end dates
-    const startDate = new Date('2024-12-03');
-   
+    // Fetch all records from userDailyreward for the given telegramId
+    const dailyRewardsRecords = await userDailyreward.find({ telegramId: telegramId });
+
+    // Check if records exist
+    if (!dailyRewardsRecords || dailyRewardsRecords.length === 0) {
+      logger.warn(`No daily rewards found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'No daily rewards found' });
+    }
+
+    logger.info(`Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}`);
+
+    // Send the records in the response
+    return res.status(200).json({ dailyRewards: dailyRewardsRecords });
   } catch (err) {
-    logger.error(
-      `Error calculating weekly rewards for telegramId: ${telegramId} - ${err.message}`
-    );
+    logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);
     next(err);
   }
 };
+
 
 
 
