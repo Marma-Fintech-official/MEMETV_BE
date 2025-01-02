@@ -1,4 +1,4 @@
-name: Node.js CI/CD Pipeline
+name: Node.js CI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     environment: testnet
 
@@ -26,65 +26,44 @@ jobs:
 
       # Step 3: Install dependencies
       - name: Install dependencies
-        run: npm ci
-
-      # Step 5: Deploy to EC2
-      - name: Deploy to EC2
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          DBURL: ${{ secrets.DBURL }}
-          PORT: ${{ secrets.PORT }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        run: npm install
+      
+      # Step 4: Set environment variables
+      - name: Set environment variables
         run: |
-          # Configure SSH
+          echo "DBURL=${{ vars.DBURL }}" >> $GITHUB_ENV
+          echo "PORT=${{ vars.PORT }}" >> $GITHUB_ENV
+          echo "TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
+      # Step 6: Deploy to EC2
+      - name: Deploy to EC2
+        run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
-          # Define deployment commands
-          DEPLOY_SCRIPT=$(cat << 'EOF'
-          set -e
-
-          # Variables
+          # SSH into EC2 and execute deployment commands
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          # Set deployment directory
           DEPLOY_DIR=/home/ubuntu/MEMETV_BE
-          REPO_URL=https://github.com/Marma-Fintech-official/MEMETV_BE.git
-
-          # Ensure PM2 is installed
-          if ! command -v pm2 &> /dev/null; then
-            echo "PM2 not found, installing..."
-            npm install -g pm2
-          fi
-
-          # Clone or update repository
+          # Check if repository exists
           if [ ! -d "$DEPLOY_DIR" ]; then
+            # Clone repository if it doesn't exist
             echo "Cloning repository..."
-            git clone $REPO_URL $DEPLOY_DIR
+            git clone https://github.com/Marma-Fintech-official/MEMETV_BE.git $DEPLOY_DIR
+            cd $DEPLOY_DIR
           else
+            # Pull latest changes if repository exists
             echo "Pulling latest changes..."
             cd $DEPLOY_DIR
             git pull origin main
           fi
-
-          # Navigate to deployment directory
-          cd $DEPLOY_DIR
-
-          # Create .env file with environment variables
+          # Overwrite environment variables
           cat <<EOT > .env
-          DBURL=$DBURL
-          PORT=$PORT
-          TELEGRAM_TOKEN=$TELEGRAM_TOKEN
+          DBURL=${{ secrets.DBURL }}
+          PORT=${{ secrets.PORT }}
+          TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
           EOT
-
-          # Install dependencies
-          npm ci
-
-          # Restart application with PM2
-          pm2 startOrRestart ecosystem.config.js --env production
-
+          # Install dependencies and restart application
+          npm install
+          pm2 restart meme-tv || pm2 start npm --name "meme-tv" -- start
           echo "Deployment completed successfully!"
           EOF
-          )
-
-          # Execute deployment script on EC2
-          ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "$DEPLOY_SCRIPT"
