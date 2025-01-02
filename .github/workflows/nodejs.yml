@@ -11,7 +11,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environmemnt: testnet
+    environment: testnet
 
     steps:
       # Step 1: Check out the code
