@@ -36,6 +36,10 @@ jobs:
           echo "TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
       # Step 6: Deploy to EC2
       - name: Deploy to EC2
+        env:
+          DBURL: ${{ vars.DBURL }}
+          PORT: ${{ vars.PORT }}
+          TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -58,9 +62,9 @@ jobs:
           fi
           # Overwrite environment variables
           cat <<EOT > .env
-          DBURL=${{ secrets.DBURL }}
-          PORT=${{ secrets.PORT }}
-          TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
+          DBURL=${{ vars.DBURL }}
+          PORT=${{ vars.PORT }}
+          TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}
           EOT
           # Install dependencies and restart application
           npm install
