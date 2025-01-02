@@ -37,6 +37,8 @@ jobs:
       # Step 6: Deploy to EC2
       - name: Deploy to EC2
         env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
           DBURL: ${{ vars.DBURL }}
           PORT: ${{ vars.PORT }}
           TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
