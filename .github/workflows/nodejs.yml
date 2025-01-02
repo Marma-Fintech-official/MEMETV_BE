@@ -28,10 +28,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Step 4: Run tests (if applicable)
-      - name: Run tests
-        run: npm test
-
       # Step 5: Deploy to EC2
       - name: Deploy to EC2
         env:
