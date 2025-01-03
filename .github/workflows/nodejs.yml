@@ -32,11 +32,7 @@ jobs:
           echo "PORT=${{ vars.PORT }}" >> $GITHUB_ENV
           echo "TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
 
-      # Step 5: Build Docker image
-      - name: Build Docker image
-        run: docker build -t meme-tv .
-
-      # Step 6: Deploy to EC2
+      # Step 5: Deploy to EC2
       - name: Deploy to EC2
         env:
           DBURL: ${{ vars.DBURL }}
@@ -54,7 +50,6 @@ jobs:
 
           # Variables
           DEPLOY_DIR=/home/ubuntu/MEMETV_BE
-          IMAGE_NAME=meme-tv
           CONTAINER_NAME=meme-tv
           REPO_URL=https://github.com/Marma-Fintech-official/MEMETV_BE.git
 
@@ -97,7 +92,7 @@ jobs:
 
           # Build Docker image
           echo "Building Docker image..."
-          docker build -t $IMAGE_NAME .
+          docker build -t $CONTAINER_NAME:${{ github.sha }} .
 
           # Stop and remove existing container if running
           if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
@@ -108,12 +103,7 @@ jobs:
 
           # Run the Docker container
           echo "Starting Docker container..."
-          docker run -d --name $CONTAINER_NAME -p 3000:3000 --env-file .env $IMAGE_NAME
-
-          # Restart application with PM2
-          echo "Restarting application with PM2..."
-          pm2 delete $CONTAINER_NAME || true
-          pm2 start docker --name $CONTAINER_NAME -- run -d --name $CONTAINER_NAME -p 3000:3000 --env-file .env $IMAGE_NAME
+          docker run -d --name $CONTAINER_NAME -p $PORT:$PORT --env-file .env $CONTAINER_NAME:${{ github.sha }}
 
           echo "Deployment completed successfully!"
           EOF
