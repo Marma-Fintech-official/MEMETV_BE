@@ -103,7 +103,7 @@ jobs:
 
           # Run the Docker container
           echo "Starting Docker container..."
-          sudo docker run -d --name $CONTAINER_NAME -p $PORT:$PORT --env-file .env $CONTAINER_NAME:${{ github.sha }}
+          sudo docker run -d --name $CONTAINER_NAME -p ${{ vars.PORT }}:${{ vars.PORT }} --env-file .env $CONTAINER_NAME:${{ github.sha }}
 
           echo "Deployment completed successfully!"
           EOF
