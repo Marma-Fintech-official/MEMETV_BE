@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Node.js CI with PM2 + Docker
 
 on:
   push:
@@ -24,13 +24,18 @@ jobs:
       # Step 3: Install dependencies
       - name: Install dependencies
         run: npm install
-      
+
       # Step 4: Set environment variables
       - name: Set environment variables
         run: |
           echo "DBURL=${{ vars.DBURL }}" >> $GITHUB_ENV
           echo "PORT=${{ vars.PORT }}" >> $GITHUB_ENV
           echo "TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
+
+      # Step 5: Build Docker image
+      - name: Build Docker image
+        run: docker build -t meme-tv .
+
       # Step 6: Deploy to EC2
       - name: Deploy to EC2
         env:
@@ -49,16 +54,19 @@ jobs:
 
           # Variables
           DEPLOY_DIR=/home/ubuntu/MEMETV_BE
+          IMAGE_NAME=meme-tv
+          CONTAINER_NAME=meme-tv
           REPO_URL=https://github.com/Marma-Fintech-official/MEMETV_BE.git
 
           # Update package index
           sudo apt update
 
-          # Install Node.js if not installed
-          if ! command -v node &> /dev/null; then
-            echo "Node.js not found, installing..."
-            curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-            sudo apt install -y nodejs
+          # Install Docker if not installed
+          if ! command -v docker &> /dev/null; then
+            echo "Docker not found, installing..."
+            sudo apt install -y docker.io
+            sudo systemctl start docker
+            sudo systemctl enable docker
           fi
 
           # Install PM2 if not installed
@@ -87,20 +95,29 @@ jobs:
           TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}
           EOT
 
-          # Install dependencies
-          npm install
+          # Build Docker image
+          echo "Building Docker image..."
+          docker build -t $IMAGE_NAME .
+
+          # Stop and remove existing container if running
+          if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+            echo "Stopping and removing existing container..."
+            docker stop $CONTAINER_NAME
+            docker rm $CONTAINER_NAME
+          fi
+
+          # Run the Docker container
+          echo "Starting Docker container..."
+          docker run -d --name $CONTAINER_NAME -p 3000:3000 --env-file .env $IMAGE_NAME
 
           # Restart application with PM2
-          pm2 restart meme-tv || pm2 start npm --name "meme-tv" -- start
+          echo "Restarting application with PM2..."
+          pm2 delete $CONTAINER_NAME || true
+          pm2 start docker --name $CONTAINER_NAME -- run -d --name $CONTAINER_NAME -p 3000:3000 --env-file .env $IMAGE_NAME
 
           echo "Deployment completed successfully!"
           EOF
           )
 
-          echo "variables: DBURL=${{ vars.DBURL }}, PORT=${{ vars.PORT }}, TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}"
-          echo "secrets: SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }}, secrets.EC2_HOST=${{ secrets.EC2_HOST }}"
-          echo "env: testnet"
-
           # Execute deployment script on EC2
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "$DEPLOY_SCRIPT"
-      
