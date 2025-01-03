@@ -4,14 +4,11 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: testnet
+    environment: mainnet
 
     steps:
       # Step 1: Check out the code
@@ -37,15 +34,13 @@ jobs:
       # Step 6: Deploy to EC2
       - name: Deploy to EC2
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
           DBURL: ${{ vars.DBURL }}
           PORT: ${{ vars.PORT }}
           TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
         run: |
           # Configure SSH
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
           # Define deployment commands
@@ -76,10 +71,11 @@ jobs:
           if [ ! -d "$DEPLOY_DIR" ]; then
             echo "Cloning repository..."
             git clone $REPO_URL $DEPLOY_DIR
+            git checkout main
           else
             echo "Pulling latest changes..."
             cd $DEPLOY_DIR
-            git config pull.rebase false  # Set pull strategy to merge
+            git checkout main
             git pull origin main
           fi
 
@@ -103,5 +99,9 @@ jobs:
           EOF
           )
 
+          echo "variables: DBURL=${{ vars.DBURL }}, PORT=${{ vars.PORT }}, TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}"
+          echo "secrets: SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }}, secrets.EC2_HOST=${{ secrets.EC2_HOST }}"
+          echo "env: mainnet"
+
           # Execute deployment script on EC2
-          ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "$DEPLOY_SCRIPT"
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "$DEPLOY_SCRIPT"
