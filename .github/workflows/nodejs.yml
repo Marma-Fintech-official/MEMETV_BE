@@ -30,13 +30,13 @@ jobs:
         run: |
           echo "DBURL=${{ vars.DBURL }}" >> $GITHUB_ENV
           echo "PORT=${{ vars.PORT }}" >> $GITHUB_ENV
-          echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
+          echo "TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
       # Step 6: Deploy to EC2
       - name: Deploy to EC2
         env:
           DBURL: ${{ vars.DBURL }}
           PORT: ${{ vars.PORT }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
         run: |
           # Configure SSH
           mkdir -p ~/.ssh
@@ -75,7 +75,7 @@ jobs:
             echo "Pulling latest changes..."
             cd $DEPLOY_DIR
             git config pull.rebase false  # Set pull strategy to merge
-            git pull origin main
+            git pull origin testnet
           fi
 
           # Navigate to deployment directory
@@ -98,7 +98,7 @@ jobs:
           EOF
           )
 
-          echo "variables: DBURL=${{ vars.DBURL }}, PORT=${{ vars.PORT }}, TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}"
+          echo "variables: DBURL=${{ vars.DBURL }}, PORT=${{ vars.PORT }}, TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}"
           echo "secrets: SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }}, secrets.EC2_HOST=${{ secrets.EC2_HOST }}"
           echo "env: testnet"
 
