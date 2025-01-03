@@ -107,6 +107,14 @@ const userSchema = mongoose.Schema(
         }
       }
     ],
+    tutorialStatus: {
+      type: Boolean,
+      default: false
+    },
+    userWalletAddress: {
+      type: String,
+      default: ''
+    },
     streak: {
       loginStreak: {
         loginStreakCount: {
@@ -252,19 +260,6 @@ const userSchema = mongoose.Schema(
         default: 0
       }
     },
-    yourReferenceIds: [
-      {
-        userId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Users',
-          required: true
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now
-        }
-      }
-    ]
   },
   {
     timestamps: true

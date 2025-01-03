@@ -48,6 +48,7 @@ if (cluster.isMaster) {
 
   const app = express()
 
+
   // Connect to MongoDB
   mongoose
     .connect(process.env.DBURL, {
@@ -86,7 +87,6 @@ if (cluster.isMaster) {
   })
   app.use(limiter)
 
-  
   // Listen on the specified port
   const port = process.env.PORT || 8888
   app.listen(port, () => {

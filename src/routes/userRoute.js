@@ -14,9 +14,8 @@ router.post(
   '/login',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      name: Joi.string().required(),
-      referredById: Joi.string().optional(),
-      telegramId: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   login
@@ -26,9 +25,8 @@ router.post(
   '/userGameRewards',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      gamePoints: Joi.string().optional(),
-      boosters: Joi.array().items(Joi.string()).optional()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   userGameRewards
@@ -38,9 +36,8 @@ router.post(
   '/userTaskRewards',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      taskPoints: Joi.string().required(),
-      channel: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   userTaskRewards
@@ -50,10 +47,8 @@ router.post(
   '/purchaseBooster',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      boosterPoints: Joi.string().required(),
-      booster: Joi.string().required(),
-      boosterCount: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   purchaseBooster
@@ -63,8 +58,8 @@ router.post(
   '/purchaseGameCards',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      gamePoints: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   purchaseGameCards
@@ -74,7 +69,8 @@ router.post(
   '/stakingRewards',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      stakingId: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   stakingRewards
