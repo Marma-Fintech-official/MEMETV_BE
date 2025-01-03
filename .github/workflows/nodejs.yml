@@ -71,10 +71,11 @@ jobs:
           if [ ! -d "$DEPLOY_DIR" ]; then
             echo "Cloning repository..."
             git clone $REPO_URL $DEPLOY_DIR
+            git checkout testnet
           else
             echo "Pulling latest changes..."
             cd $DEPLOY_DIR
-            git config pull.rebase false  # Set pull strategy to merge
+            git checkout testnet
             git pull origin testnet
           fi
 
