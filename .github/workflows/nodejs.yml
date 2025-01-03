@@ -75,7 +75,7 @@ jobs:
           else
             echo "Pulling latest changes..."
             cd $DEPLOY_DIR
-            git checkout main
+            git config pull.rebase false
             git pull origin main
           fi
 
