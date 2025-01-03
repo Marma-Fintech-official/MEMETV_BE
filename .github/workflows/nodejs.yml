@@ -33,19 +33,17 @@ jobs:
         run: |
           echo "DBURL=${{ vars.DBURL }}" >> $GITHUB_ENV
           echo "PORT=${{ vars.PORT }}" >> $GITHUB_ENV
-          echo "TELEGRAM_TOKEN=${{ vars.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
+          echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" >> $GITHUB_ENV
       # Step 6: Deploy to EC2
       - name: Deploy to EC2
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
           DBURL: ${{ vars.DBURL }}
           PORT: ${{ vars.PORT }}
-          TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         run: |
           # Configure SSH
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
           # Define deployment commands
@@ -103,5 +101,10 @@ jobs:
           EOF
           )
 
+          echo "variables: DBURL=${{ vars.DBURL }}, PORT=${{ vars.PORT }}, TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}"
+          echo "secrets: SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }}, secrets.EC2_HOST=${{ secrets.EC2_HOST }}"
+          echo "env: testnet"
+
           # Execute deployment script on EC2
-          ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "$DEPLOY_SCRIPT"
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "$DEPLOY_SCRIPT"
+      
