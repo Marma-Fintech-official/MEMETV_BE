@@ -92,18 +92,18 @@ jobs:
 
           # Build Docker image
           echo "Building Docker image..."
-          docker build -t $CONTAINER_NAME:${{ github.sha }} .
+          sudo docker build -t $CONTAINER_NAME:${{ github.sha }} .
 
           # Stop and remove existing container if running
-          if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+          if [ "$(sudo docker ps -q -f name=$CONTAINER_NAME)" ]; then
             echo "Stopping and removing existing container..."
-            docker stop $CONTAINER_NAME
-            docker rm $CONTAINER_NAME
+            sudo docker stop $CONTAINER_NAME
+            sudo docker rm $CONTAINER_NAME
           fi
 
           # Run the Docker container
           echo "Starting Docker container..."
-          docker run -d --name $CONTAINER_NAME -p $PORT:$PORT --env-file .env $CONTAINER_NAME:${{ github.sha }}
+          sudo docker run -d --name $CONTAINER_NAME -p $PORT:$PORT --env-file .env $CONTAINER_NAME:${{ github.sha }}
 
           echo "Deployment completed successfully!"
           EOF
