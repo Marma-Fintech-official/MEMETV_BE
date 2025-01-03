@@ -69,12 +69,10 @@ router.get(
 )
 
 
-router.post('/tutorialStatus/:telegramId',celebrate({
-  [Segments.PARAMS]: Joi.object().keys({
-    telegramId: Joi.string().required()
-  }),
+router.post('/tutorialStatus',celebrate({
   [Segments.BODY]: Joi.object().keys({
-    tutorialStatus: Joi.boolean().required()
+    telegramId: Joi.string().required(),
+    tutorialStatus: Joi.boolean().required(),
   })
 }),
 tutorialStatus
@@ -91,10 +89,8 @@ stakingHistory
 router.post(
   '/addWalletAddress/:telegramId',
   celebrate({
-    [Segments.PARAMS]: Joi.object().keys({
-      telegramId: Joi.string().required()
-    }),
     [Segments.BODY]: Joi.object().keys({
+      telegramId: Joi.string().required(),
       userWalletAddress: Joi.string().required()
     })
   }),

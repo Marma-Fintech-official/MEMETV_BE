@@ -640,84 +640,89 @@ const addWalletAddress = async (req, res, next) => {
 
 const dailyRewards = async (req, res, next) => {
   try {
-    let { telegramId } = req.params
+    let { telegramId } = req.params;
 
     // Log the incoming request
     logger.info(
       `Received request to calculate daily rewards for telegramId: ${telegramId}`
-    )
+    );
 
     // Trim leading and trailing spaces
-    telegramId = telegramId.trim()
+    telegramId = telegramId.trim();
 
     // Extract page and limit from the query parameters (default limit is 10, default page is 1)
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 10
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     // Validate page and limit values
     if (page <= 0) {
-      return res.status(400).json({ message: 'Page must be greater than 0' })
+      return res.status(400).json({ message: 'Page must be greater than 0' });
     }
     if (limit <= 0) {
-      return res.status(400).json({ message: 'Limit must be greater than 0' })
+      return res.status(400).json({ message: 'Limit must be greater than 0' });
     }
 
     // Calculate skip value based on page and limit
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * limit;
 
     // Find user by telegramId
-    const userDetail = await User.findOne({ telegramId: telegramId })
+    const userDetail = await User.findOne({ telegramId: telegramId });
 
     // Check if user exists
     if (!userDetail) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
+      logger.warn(`User not found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'User not found' });
     }
 
     logger.info(
       `User found for telegramId: ${telegramId}, fetching daily rewards...`
-    )
+    );
 
     // Fetch the paginated records from userDailyreward for the given telegramId
     const dailyRewardsRecords = await userDailyreward
       .find({ telegramId: telegramId })
       .skip(skip) // Skip records for pagination
-      .limit(limit) // Limit the number of records per page
+      .limit(limit); // Limit the number of records per page
 
     // Check if records exist
     if (!dailyRewardsRecords || dailyRewardsRecords.length === 0) {
-      logger.warn(`No daily rewards found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'No daily rewards found' })
+      logger.warn(`No daily rewards found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'No daily rewards found' });
     }
 
     logger.info(
       `Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}`
-    )
+    );
 
     // Process records to add the stakeButton field
     const processedRewards = dailyRewardsRecords.map(reward => {
-      const createdAtDate = new Date(reward.createdAt)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0) // Reset the time part to compare only dates
+      const createdAtDate = new Date(reward.createdAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset the time part to compare only dates
 
       // Enable stakeButton for all days after the createdAt day
-      const stakeButton = today > createdAtDate ? 'enable' : 'disable'
-      return { ...reward.toObject(), stakeButton }
-    })
+      const stakeButton = today > createdAtDate ? 'enable' : 'disable';
+      return { ...reward.toObject(), stakeButton };
+    });
+
+    // Include balanceRewards from userDetail in the response
+    const balanceRewards = userDetail.balanceRewards || 0;
 
     // Send the paginated records in the response
     return res.status(200).json({
       dailyRewards: processedRewards,
+      balanceRewards,
       page,
       limit,
-    })
+    });
   } catch (err) {
     logger.error(
       `Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`
-    )
-    next(err)
+    );
+    next(err);
   }
-}
+};
+
 
 
 module.exports = {
