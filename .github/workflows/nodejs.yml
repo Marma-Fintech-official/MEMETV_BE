@@ -71,16 +71,14 @@ jobs:
           if [ ! -d "$DEPLOY_DIR" ]; then
             echo "Cloning repository..."
             git clone $REPO_URL $DEPLOY_DIR
-            git checkout testnet
+            cd $DEPLOY_DIR && git checkout testnet
           else
             echo "Pulling latest changes..."
             cd $DEPLOY_DIR
+            git config pull.rebase false
             git checkout testnet
             git pull origin testnet
           fi
-
-          # Navigate to deployment directory
-          cd $DEPLOY_DIR
 
           # Create .env file with environment variables
           cat <<EOT > .env
