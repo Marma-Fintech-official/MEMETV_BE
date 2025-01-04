@@ -86,7 +86,6 @@ if (cluster.isMaster) {
   })
   app.use(limiter)
 
-  
   // Listen on the specified port
   const port = process.env.PORT || 8888
   app.listen(port, () => {

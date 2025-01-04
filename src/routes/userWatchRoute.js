@@ -17,10 +17,8 @@ router.post(
   '/userWatchRewards',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      userWatchSeconds: Joi.number().optional(),
-      boosterPoints: Joi.string().optional(),
-      boosters: Joi.array().items(Joi.string()).optional()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   userWatchRewards
@@ -71,8 +69,8 @@ router.get(
 
 router.post('/tutorialStatus',celebrate({
   [Segments.BODY]: Joi.object().keys({
-    telegramId: Joi.string().required(),
-    tutorialStatus: Joi.boolean().required(),
+    encryptedData: Joi.string().required(),
+    iv: Joi.required(),
   })
 }),
 tutorialStatus

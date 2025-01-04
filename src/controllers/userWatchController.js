@@ -3,14 +3,14 @@ const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
-
+const { decryptMessage } = require('../helpers/crypto')
 const startDate = new Date('2024-12-03') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
-  const oneDay = 24 * 60 * 60 * 1000
-  const daysDifference = Math.floor((currentDate - startDate) / oneDay)
-  const phase = Math.floor(daysDifference / 7) + 1
-  return Math.min(phase)
+  const oneDay = 24 * 60 * 60 * 1000;
+  const daysDifference = Math.floor((currentDate - startDate) / oneDay);
+  if (daysDifference < 0) return 0; // Before start date
+  return Math.ceil(daysDifference / 7);
 }
 
 const TOTALREWARDS_LIMIT = 21000000000
@@ -65,19 +65,16 @@ const updateUserDailyReward = async (
 }
 
 const userWatchRewards = async (req, res, next) => {
-  let telegramId // Declare telegramId outside the try block for accessibility
+  
   try {
-    const {
-      telegramId: id,
-      userWatchSeconds,
-      boosterPoints = 0,
-      boosters = []
-    } = req.body
-    telegramId = id // Assign the value to the outer-scoped variable
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    // logger.info('Decrypted Payload', decryptedData)
 
-    logger.info(
-      `Received request to process watch rewards for telegramId: ${telegramId}`
-    )
+    const { telegramId, } = decryptedData
 
     const now = new Date()
     const currentPhase = calculatePhase(now, startDate)
@@ -141,7 +138,7 @@ const userWatchRewards = async (req, res, next) => {
     const totalRewardsInSystem = await User.aggregate([
       { $group: { _id: null, total: { $sum: '$balanceRewards' } } }
     ])
-    
+
     const totalRewardsUsed = totalRewardsInSystem[0]
       ? totalRewardsInSystem[0].total
       : 0
@@ -293,7 +290,6 @@ const userWatchRewards = async (req, res, next) => {
     next(err)
   }
 }
-
 
 const userDetails = async (req, res, next) => {
   try {
@@ -529,31 +525,36 @@ const yourReferrals = async (req, res, next) => {
 
 const tutorialStatus = async (req, res, next) => {
   try {
-    const { telegramId } = req.params
-    const { tutorialStatus } = req.body
-
-    // Find the user by telegramId and update the tutorialStatus
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    // logger.info('Decrypted Payload', decryptedData)
+    const { telegramId, tutorialStatus } = decryptedData
+    if (!telegramId || tutorialStatus === undefined) {
+      return res.status(400).json({ message: 'Invalid payload structure' })
+    }
     const updatedUser = await User.findOneAndUpdate(
       { telegramId },
       { tutorialStatus },
-      { new: true } // Return the updated document
+      { new: true }
     )
-
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' })
     }
-
-    res
-      .status(200)
-      .json({
-        message: 'Tutorial status updated successfully',
-        user: updatedUser
-      })
+    res.status(200).json({
+      message: 'Tutorial status updated successfully',
+      user: {
+        telegramId: updatedUser.telegramId,
+        tutorialStatus: updatedUser.tutorialStatus
+      } // Filter response
+    })
   } catch (err) {
-    logger.error(
-      `Error retrieving referrals for telegramId: ${telegramId} - ${err.message}`
-    )
-    next(err)
+    logger.error(`Error updating tutorial status: ${err.message}`)
+    res
+      .status(500)
+      .json({ error: 'Internal Server Error', details: err.message })
   }
 }
 
@@ -641,87 +642,78 @@ const addWalletAddress = async (req, res, next) => {
 const dailyRewards = async (req, res, next) => {
   try {
     let { telegramId } = req.params;
+    const { currentPhase = 1 } = req.query;
 
     // Log the incoming request
-    logger.info(
-      `Received request to calculate daily rewards for telegramId: ${telegramId}`
-    );
+    logger.info(`Received request to calculate daily rewards for telegramId: ${telegramId}, currentPhase: ${currentPhase}`);
 
     // Trim leading and trailing spaces
     telegramId = telegramId.trim();
 
-    // Extract page and limit from the query parameters (default limit is 10, default page is 1)
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    // Validate page and limit values
-    if (page <= 0) {
-      return res.status(400).json({ message: 'Page must be greater than 0' });
-    }
-    if (limit <= 0) {
-      return res.status(400).json({ message: 'Limit must be greater than 0' });
+    // Validate currentPhase
+    const phase = parseInt(currentPhase);
+    if (isNaN(phase) || phase <= 0) {
+      logger.warn(`Invalid currentPhase: ${currentPhase}`);
+      return res.status(400).json({ message: 'Invalid currentPhase' });
     }
 
-    // Calculate skip value based on page and limit
-    const skip = (page - 1) * limit;
-
-    // Find user by telegramId
-    const userDetail = await User.findOne({ telegramId: telegramId });
-
-    // Check if user exists
-    if (!userDetail) {
-      logger.warn(`User not found for telegramId: ${telegramId}`);
-      return res.status(404).json({ message: 'User not found' });
+    // Check if telegramId exists in userDailyreward collection
+    const userExists = await userDailyreward.exists({ telegramId });
+    if (!userExists) {
+      logger.warn(`No records found for telegramId: ${telegramId}`);
+      return res.status(200).json({
+        dailyRewards: [],
+        totalPhaseRewards: 0,
+        message: `No rewards found for telegramId: ${telegramId}`,
+      });
     }
 
-    logger.info(
-      `User found for telegramId: ${telegramId}, fetching daily rewards...`
-    );
+    // Calculate the start and end dates for the requested phase
+    const phaseStartDate = new Date(startDate.getTime() + (phase - 1) * 7 * 24 * 60 * 60 * 1000);
+    const phaseEndDate = new Date(phaseStartDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // Fetch the paginated records from userDailyreward for the given telegramId
-    const dailyRewardsRecords = await userDailyreward
-      .find({ telegramId: telegramId })
-      .skip(skip) // Skip records for pagination
-      .limit(limit); // Limit the number of records per page
+    // Fetch all daily rewards records for the current phase
+    const dailyRewardsRecords = await userDailyreward.find({
+      telegramId,
+      createdAt: { $gte: phaseStartDate, $lt: phaseEndDate },
+    });
 
-    // Check if records exist
-    if (!dailyRewardsRecords || dailyRewardsRecords.length === 0) {
-      logger.warn(`No daily rewards found for telegramId: ${telegramId}`);
-      return res.status(404).json({ message: 'No daily rewards found' });
+    logger.info(`Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}, phase: ${currentPhase}`);
+
+    // Check if no records are found for the current phase
+    if (dailyRewardsRecords.length === 0) {
+      return res.status(200).json({
+        dailyRewards: [],
+        totalPhaseRewards: 0,
+        message: `No rewards found for telegramId: ${telegramId} in phase: ${currentPhase}`,
+      });
     }
-
-    logger.info(
-      `Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}`
-    );
 
     // Process records to add the stakeButton field
-    const processedRewards = dailyRewardsRecords.map(reward => {
-      const createdAtDate = new Date(reward.createdAt);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset the time part to compare only dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset the time part
 
-      // Enable stakeButton for all days after the createdAt day
+    let totalPhaseRewards = 0;
+
+    const processedRewards = dailyRewardsRecords.map((reward) => {
+      const createdAtDate = new Date(reward.createdAt);
       const stakeButton = today > createdAtDate ? 'enable' : 'disable';
+      totalPhaseRewards += reward.dailyEarnedRewards || 0; // Sum up dailyEarnedRewards for the phase
       return { ...reward.toObject(), stakeButton };
     });
 
-    // Include balanceRewards from userDetail in the response
-    const balanceRewards = userDetail.balanceRewards || 0;
-
-    // Send the paginated records in the response
+    // Return the response
     return res.status(200).json({
       dailyRewards: processedRewards,
-      balanceRewards,
-      page,
-      limit,
+      totalPhaseRewards,
     });
   } catch (err) {
-    logger.error(
-      `Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`
-    );
+    logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);
     next(err);
   }
 };
+
+
 
 
 

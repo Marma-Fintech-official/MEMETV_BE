@@ -21,7 +21,6 @@ const encryptMessage = (message) => {
     const encryptedData =encrypted.toString();
     const ivString =iv
     return { encryptedData, ivString };
-    // return encrypted.toString();
   };
 
   module.exports ={decryptMessage, encryptMessage}
