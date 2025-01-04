@@ -683,26 +683,43 @@ const dailyRewards = async (req, res, next) => {
 
     logger.info(`Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}, phase: ${currentPhase}`);
 
-    // Check if no records are found for the current phase
-    if (dailyRewardsRecords.length === 0) {
-      return res.status(200).json({
-        dailyRewards: [],
-        totalPhaseRewards: 0,
-        message: `No rewards found for telegramId: ${telegramId} in phase: ${currentPhase}`,
-      });
+    // Generate the full 7-day range for the current phase
+    const fullPhaseDates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(phaseStartDate);
+      date.setDate(date.getDate() + i);
+      fullPhaseDates.push(date.toISOString().split('T')[0]); // Format as YYYY-MM-DD
     }
 
-    // Process records to add the stakeButton field
+    // Map existing records into an object keyed by date
+    const recordsByDate = dailyRewardsRecords.reduce((acc, record) => {
+      const dateKey = record.createdAt.toISOString().split('T')[0];
+      acc[dateKey] = record;
+      return acc;
+    }, {});
+
+    // Process the full range of dates and include missing records with default values
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset the time part
 
     let totalPhaseRewards = 0;
 
-    const processedRewards = dailyRewardsRecords.map((reward) => {
-      const createdAtDate = new Date(reward.createdAt);
-      const stakeButton = today > createdAtDate ? 'enable' : 'disable';
-      totalPhaseRewards += reward.dailyEarnedRewards || 0; // Sum up dailyEarnedRewards for the phase
-      return { ...reward.toObject(), stakeButton };
+    const processedRewards = fullPhaseDates.map((dateKey) => {
+      if (recordsByDate[dateKey]) {
+        // Use existing record
+        const reward = recordsByDate[dateKey];
+        const stakeButton = today > new Date(reward.createdAt) ? 'enable' : 'disable';
+        totalPhaseRewards += reward.dailyEarnedRewards || 0;
+        return { ...reward.toObject(), stakeButton };
+      } else {
+        // Add default record
+        return {
+          createdAt: dateKey,
+          telegramId,
+          dailyEarnedRewards: 0,
+          stakeButton: 'disable',
+        };
+      }
     });
 
     // Return the response
@@ -715,6 +732,10 @@ const dailyRewards = async (req, res, next) => {
     next(err);
   }
 };
+
+
+
+
 
 
 
