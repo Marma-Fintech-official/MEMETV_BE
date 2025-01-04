@@ -47,7 +47,7 @@ const referStreakReward = [1000, 1500, 3000, 6000, 12000, 24000, 48000];
 const taskStreakReward = [100, 200, 400, 800, 1600, 3200, 6400];
 const multiStreakReward = [1300, 2100, 4200, 8400, 16800, 33600, 67200];
 
-const distributionStartDate = new Date("2024-12-22");
+const distributionStartDate = new Date("2024-12-03");
 const calculateDayDifference = async (inputDate) => {
   let currentDate = new Date();
   const currentDay = currentDate.toISOString().split("T")[0];
