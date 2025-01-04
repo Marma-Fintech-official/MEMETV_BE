@@ -1,81 +1,28 @@
-const express = require('express')
-const router = express.Router()
-const { celebrate, Joi, errors, Segments } = require('celebrate')
+const express = require('express');
+const router = express.Router();
+const { celebrate, errors } = require('celebrate');
 const {
   login,
   userGameRewards,
   userTaskRewards,
   purchaseBooster,
   purchaseGameCards,
-  stakingRewards
-} = require('../controllers/userController')
+  stakingRewards,
+} = require('../controllers/userController');
+const { commonPayload } = require('../helpers/validation');
 
-router.post(
-  '/login',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  login
-)
+router.post('/login', celebrate(commonPayload), login);
 
-router.post(
-  '/userGameRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  userGameRewards
-)
+router.post('/userGameRewards', celebrate(commonPayload), userGameRewards);
 
-router.post(
-  '/userTaskRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  userTaskRewards
-)
+router.post('/userTaskRewards', celebrate(commonPayload), userTaskRewards);
 
-router.post(
-  '/purchaseBooster',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  purchaseBooster
-)
+router.post('/purchaseBooster', celebrate(commonPayload), purchaseBooster);
 
-router.post(
-  '/purchaseGameCards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  purchaseGameCards
-)
+router.post('/purchaseGameCards', celebrate(commonPayload), purchaseGameCards);
 
-router.post(
-  '/stakingRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  stakingRewards
-)
+router.post('/stakingRewards', celebrate(commonPayload), stakingRewards);
 
-router.use(errors())
+router.use(errors());
 
-module.exports = router
+module.exports = router;

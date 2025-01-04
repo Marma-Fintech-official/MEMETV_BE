@@ -1,6 +1,6 @@
-const express = require('express')
-const router = express.Router()
-const { celebrate, Joi, errors, Segments } = require('celebrate')
+const express = require("express");
+const router = express.Router();
+const { celebrate, Joi, errors, Segments } = require("celebrate");
 const {
   streak,
   streakOfStreak,
@@ -15,161 +15,89 @@ const {
   updateClaimedReferDaysArray,
   updateClaimedTaskDaysArray,
   updateClaimedMultiDaysArray,
-  userStreaks
-} = require('../controllers/userStreakController')
+  userStreaks,
+} = require("../controllers/userStreakController");
+const { commonPayload } = require("../helpers/validation");
+
+router.post("/streak", celebrate(commonPayload), streak);
+
+router.post("/streakOfStreak", celebrate(commonPayload), streakOfStreak);
 
 router.post(
-  '/streak',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  streak
-)
-
-router.post(
-  '/streakOfStreak',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  streakOfStreak
-)
-
-router.post(
-  '/loginStreakRewardClaim',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/loginStreakRewardClaim",
+  celebrate(commonPayload),
   loginStreakRewardClaim
-)
+);
 
 router.post(
-  '/watchStreakRewardClaim',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/watchStreakRewardClaim",
+  celebrate(commonPayload),
   watchStreakRewardClaim
-)
+);
 
 router.post(
-  '/referStreakRewardClaim',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/referStreakRewardClaim",
+  celebrate(commonPayload),
   referStreakRewardClaim
-)
+);
 
 router.post(
-  '/taskStreakRewardClaim',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/taskStreakRewardClaim",
+  celebrate(commonPayload),
   taskStreakRewardClaim
-)
+);
 
 router.post(
-  '/multiStreakRewardClaim',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/multiStreakRewardClaim",
+  celebrate(commonPayload),
   multiStreakRewardClaim
-)
+);
 
 router.post(
-  '/streakOfStreakRewardClaim',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/streakOfStreakRewardClaim",
+  celebrate(commonPayload),
   streakOfStreakRewardClaim
-)
+);
 
 router.post(
-  '/updateClaimedLoginDaysArray',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/updateClaimedLoginDaysArray",
+  celebrate(commonPayload),
   updateClaimedLoginDaysArray
-)
+);
 
 router.post(
-  '/updateClaimedWatchDaysArray',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/updateClaimedWatchDaysArray",
+  celebrate(commonPayload),
   updateClaimedWatchDaysArray
-)
+);
 
 router.post(
-  '/updateClaimedReferDaysArray',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/updateClaimedReferDaysArray",
+  celebrate(commonPayload),
   updateClaimedReferDaysArray
-)
+);
 
 router.post(
-  '/updateClaimedTaskDaysArray',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/updateClaimedTaskDaysArray",
+  celebrate(commonPayload),
   updateClaimedTaskDaysArray
-)
+);
 
 router.post(
-  '/updateClaimedMultiDaysArray',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
+  "/updateClaimedMultiDaysArray",
+  celebrate(commonPayload),
   updateClaimedMultiDaysArray
-)
+);
 
 router.get(
-  '/userStreaks/:telegramId',
+  "/userStreaks/:telegramId",
   celebrate({
     [Segments.PARAMS]: Joi.object().keys({
-      telegramId: Joi.string().required()
-    })
+      telegramId: Joi.string().required(),
+    }),
   }),
   userStreaks
-)
+);
 
-router.use(errors())
-module.exports = router
+router.use(errors());
+module.exports = router;

@@ -12,18 +12,9 @@ const {
   addWalletAddress,
   dailyRewards
 } = require('../controllers/userWatchController')
+const { commonPayload } = require('../helpers/validation');
 
-router.post(
-  '/userWatchRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
-    })
-  }),
-  userWatchRewards
-)
-
+router.post('/userWatchRewards', celebrate(commonPayload), userWatchRewards)
 
 router.get(
   '/userDetails/:telegramId',
@@ -45,7 +36,6 @@ router.get(
   boosterDetails
 )
 
-
 router.get(
   '/popularUser/:telegramId',
   celebrate({
@@ -66,34 +56,19 @@ router.get(
   yourReferrals
 )
 
+router.post('/tutorialStatus', celebrate(commonPayload), tutorialStatus)
 
-router.post('/tutorialStatus',celebrate({
-  [Segments.BODY]: Joi.object().keys({
-    encryptedData: Joi.string().required(),
-    iv: Joi.required(),
-  })
-}),
-tutorialStatus
-)
-
-router.get('/stakingHistory/:telegramId', celebrate({
-  [Segments.PARAMS]: Joi.object().keys({
-    telegramId: Joi.string().required()
-  }) 
-}),
-stakingHistory
-)
-
-router.post(
-  '/addWalletAddress',
+router.get(
+  '/stakingHistory/:telegramId',
   celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      encryptedData: Joi.string().required(),
-      iv: Joi.required(),
+    [Segments.PARAMS]: Joi.object().keys({
+      telegramId: Joi.string().required()
     })
   }),
-  addWalletAddress
+  stakingHistory
 )
+
+router.post('/addWalletAddress', celebrate(commonPayload), addWalletAddress)
 
 router.get(
   '/dailyRewards/:telegramId',
@@ -104,8 +79,6 @@ router.get(
   }),
   dailyRewards
 )
-
-
 
 router.use(errors())
 

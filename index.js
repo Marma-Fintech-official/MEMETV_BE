@@ -12,7 +12,7 @@ require('dotenv').config()
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token)
+  const bot = new TelegramBot(token,{polling: true})
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
@@ -47,7 +47,6 @@ if (cluster.isMaster) {
   }
 
   const app = express()
-
 
   // Connect to MongoDB
   mongoose
