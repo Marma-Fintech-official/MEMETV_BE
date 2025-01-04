@@ -15,7 +15,9 @@ const {
   GLOBAL_REWARD_LIMIT 
 }=require('../helpers/constants');
 const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
+const { allow } = require("joi");
 require("dotenv").config();
+const TOTALREWARDS_LIMIT = 40000;
 
 const saveStreakReward = async (user, rewardPoints) => {
   try {
@@ -77,6 +79,21 @@ const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
     console.error(`Error updating daily rewards for user ${telegramId}: ${error.message}`);
   }
 };
+
+const addOrUpdateBooster = (user, boosterType, count) => {
+  const existingBooster = user.boosters.find((booster) => booster.type === boosterType);
+  if (existingBooster) {
+    existingBooster.count += count;
+  } else {
+    user.boosters.push({ type: boosterType, count });
+  }
+};
+
+const updateBoosterForStreak = (user, streakType, count) => {
+  const boosterType = `${streakType}x`; // e.g., "3x", "5x", "10x"
+  addOrUpdateBooster(user, boosterType, count);
+};
+
 
 const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
   const currentDate = new Date();
@@ -194,9 +211,11 @@ const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
     user.streak.loginStreak.loginStreakReward[
       user.streak.loginStreak.loginStreakCount - 1
     ] = rewardAmount;
-    for(i=0 ;i<user.streak.loginStreak.loginStreakCount;i++){
-      user.boosters.push({type: "3x", count: 1});
-    }
+    // for(i=0 ;i<user.streak.loginStreak.loginStreakCount;i++){
+    //   user.boosters.push({type: "3x", count: 1});
+    // }
+    updateBoosterForStreak(user, "3", user.streak.loginStreak.loginStreakCount);
+
 
     return true;
   } else {
@@ -287,9 +306,11 @@ const calculateWatchStreak = async (
         user.streak.watchStreak.watchStreakReward[
           user.streak.watchStreak.watchStreakCount - 1
         ] = rewardAmount;
-        for(i=0 ;i<user.streak.watchStreak.watchStreakCount;i++){
-          user.boosters.push({type: "3x", count: 1});
-        }
+        // for(i=0 ;i<user.streak.watchStreak.watchStreakCount;i++){
+        //   user.boosters.push({type: "3x", count: 1});
+        // }
+        updateBoosterForStreak(user, "3", user.streak.watchStreak.watchStreakCount);
+
         return true;
       } else {
         // same day login and no WATCH STREAK reward will be claimed
@@ -402,9 +423,12 @@ const calculateReferStreak = async (user, todaysLogin, differenceInDays) => {
       user.streak.referStreak.referStreakReward[
         user.streak.referStreak.referStreakCount - 1
       ] = rewardAmount;
-      for(i=0 ;i<user.streak.referStreak.referStreakCount;i++){
-        user.boosters.push({type: "3x", count: 1});
-      }
+      // for(i=0 ;i<user.streak.referStreak.referStreakCount;i++){
+      //   user.boosters.push({type: "3x", count: 1});
+      // }
+
+      updateBoosterForStreak(user, "3", user.streak.referStreak.referStreakCount);
+
       return true;
     } else {
       return false;
@@ -490,9 +514,10 @@ const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
     user.streak.taskStreak.taskStreakReward[
       user.streak.taskStreak.taskStreakCount - 1
     ] = rewardAmount;
-    for(i=0 ;i<user.streak.taskStreak.taskStreakCount;i++){
-      user.boosters.push({type: "3x", count: 1});
-    }
+    // for(i=0 ;i<user.streak.taskStreak.taskStreakCount;i++){
+    //   user.boosters.push({type: "3x", count: 1});
+    // }
+    updateBoosterForStreak(user, "3", user.streak.taskStreak.taskStreakCount);
     return true;
   } else {
     return false;
@@ -626,9 +651,11 @@ const calculateMultiStreak = async (
           user.streak.multiStreak.streakOfStreakCount++;
           user.streak.multiStreak.multiStreakDate = new Date();
         }
-        for(i=0 ;i<user.streak.multiStreak.multiStreakCount;i++){
-          user.boosters.push({type: "5x", count: 1});
-        }
+        // for(i=0 ;i<user.streak.multiStreak.multiStreakCount;i++){
+        //   user.boosters.push({type: "5x", count: 1});
+        // }
+        updateBoosterForStreak(user, "5", user.streak.multiStreak.multiStreakCount);
+
         const rewardAmount =
           multiStreakReward[user.streak.multiStreak.multiStreakCount-1];
         //add rewards to multi streak rewards
@@ -735,11 +762,11 @@ const streakOfStreak = async (req, res, next) => {
 
 
 
+
 const loginStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId, index } = req.body;
 
-    // Log the incoming request
     logger.info(`Attempting to claim Login Streak Reward for telegramId: ${telegramId}, index: ${index}`);
 
     // Find the user by telegramId
@@ -751,44 +778,73 @@ const loginStreakRewardClaim = async (req, res, next) => {
 
     const currentDate = new Date();
 
-    if (user.streak.loginStreak.loginStreakReward.length > 0 && user.streak.loginStreak.loginStreakReward[index] != 0) {
+    // Check if the reward is valid
+    if (
+      user.streak.loginStreak.loginStreakReward.length > 0 &&
+      user.streak.loginStreak.loginStreakReward[index] !== 0
+    ) {
       const rewardAmount = user.streak.loginStreak.loginStreakReward[index];
 
-      // Add to total rewards and streak rewards of the user
-      user.totalRewards += rewardAmount;
-      user.streakRewards += rewardAmount;
-      user.balanceRewards += rewardAmount;
-
-
-      // Set the claimed reward to 0
-      user.streak.loginStreak.loginStreakReward[index] = 0;
-
-      // Update the claimed login streak days array
-      const startDay = user.streak.startDay;
-      user.streak.claimedLoginDays[index + (startDay - 1)] = true;
-
-      await user.save();
-      // Save the reward record
-      await saveStreakReward(user, rewardAmount);
-      await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
-
-
-      logger.info(`Login Streak Reward claimed successfully for telegramId: ${telegramId}`);
-
-      res.status(200).json({
-        message: "Login Streak Rewards claimed successfully",
-        loginStreak: user.streak.loginStreak,
-        totalRewards: user.totalRewards,
-        balanceRewards : user.balanceRewards
-      });
-    } else {
+        // Validate reward amount
+    if (rewardAmount <= 0) {
       logger.warn(`No Login Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
-      res.status(400).json({ message: "User has no Login Streak rewards to claim" });
+      return res.status(400).json({ message: "No rewards to claim." });
     }
+
+      // Calculate the available space for total rewards globally
+      const totalRewardsInSystem = await User.aggregate([
+        { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+      ]);
+      const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+      const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+      if (availableSpace <= 0) {
+        logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+        return res.status(403).json({
+          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+        });
+      }
+
+      // Calculate the points user can claim without exceeding limits
+      const allowedPoints = Math.min(rewardAmount, availableSpace);
+
+        // Update user rewards
+        user.totalRewards += allowedPoints;
+        user.streakRewards += allowedPoints;
+        user.balanceRewards += allowedPoints;
+
+        // Update or partially update the claimed reward
+        user.streak.loginStreak.loginStreakReward[index] -= allowedPoints;
+
+        // Mark the day as claimed if the full reward was claimed
+        if (user.streak.loginStreak.loginStreakReward[index] === 0) {
+          const startDay = user.streak.startDay;
+          user.streak.claimedLoginDays[index + (startDay - 1)] = true;
+        }
+
+        await user.save();
+
+        // Save reward record and update daily rewards
+        await saveStreakReward(user, allowedPoints);
+        await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
+
+        logger.info(`Login Streak Reward claimed successfully for telegramId: ${telegramId}`);
+        return res.status(200).json({
+          message: `Login Streak Rewards claimed successfully. Claimed: ${allowedPoints}`,
+          claimedReward: allowedPoints,
+          remainingReward: rewardAmount - allowedPoints,
+          loginStreak: user.streak.loginStreak,
+          totalRewards: user.totalRewards,
+          balanceRewards: user.balanceRewards,
+        });
+      }
+      else {
+        logger.warn(`No Login Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
+        res.status(400).json({ message: "User has no Login Streak rewards to claim" });
+      }
   } catch (err) {
-    const telegramId = req.body?.telegramId || 'unknown'; // Handle undefined telegramId
-    const index = req.body?.index !== undefined ? req.body.index : 'unknown'; // Handle undefined index
-    logger.error(`Error while claiming Login Streak Reward for telegramId: ${telegramId}, index: ${index}. Error: ${err.message}`);
+    const telegramId = req.body?.telegramId || "unknown";
+    logger.error(`Error while claiming Login Streak Reward for telegramId: ${telegramId}. Error: ${err.message}`);
     next(err);
   }
 };
@@ -813,32 +869,60 @@ const watchStreakRewardClaim = async (req, res, next) => {
     if (user.streak.watchStreak.watchStreakReward.length > 0 && user.streak.watchStreak.watchStreakReward[index] != 0) {
       const rewardAmount = user.streak.watchStreak.watchStreakReward[index];
 
+      if (rewardAmount <= 0) {
+        logger.warn(`No Watch Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
+        return res.status(400).json({ message: "No rewards to claim." });
+      }
+      // Calculate the available space for total rewards globally
+      const totalRewardsInSystem = await User.aggregate([
+        { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+      ]);
+      const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+      const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+      if (availableSpace <= 0) {
+        logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+        return res.status(403).json({
+          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+        });
+      }
+      const allowedPoints = Math.min(rewardAmount, availableSpace);
+
       // Add to total rewards and streak rewards of the user
-      user.totalRewards += rewardAmount;
-      user.streakRewards += rewardAmount;
-      user.balanceRewards += rewardAmount;
+      user.totalRewards += allowedPoints;
+      user.streakRewards += allowedPoints;
+      user.balanceRewards += allowedPoints;
 
       // Set the claimed reward to 0
-      user.streak.watchStreak.watchStreakReward[index] = 0;
+      user.streak.watchStreak.watchStreakReward[index] -= allowedPoints;
 
       // Update the claimed watch streak days array
-      const startDay = user.streak.startDay;
-      user.streak.claimedWatchDays[index + (startDay - 1)] = true;
+      // const startDay = user.streak.startDay;
+      // user.streak.claimedWatchDays[index + (startDay - 1)] = true;
+
+       // Mark the day as claimed if the full reward was claimed
+       if (user.streak.watchStreak.watchStreakReward[index] === 0) {
+        const startDay = user.streak.startDay;
+        user.streak.claimedWatchDays[index + (startDay - 1)] = true;
+      }
 
       await user.save();
        // Save the reward record
-       await saveStreakReward(user, rewardAmount);
-       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
+       await saveStreakReward(user, allowedPoints);
+       await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
 
       logger.info(`Watch Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
       res.status(200).json({
-        message: "Watch Streak Rewards claimed successfully",
+        message: `Watch Streak Rewards claimed successfully. Claimed: ${allowedPoints}`,
+        claimedReward: allowedPoints,
+        remainingReward: rewardAmount - allowedPoints,
         watchStreak: user.streak.watchStreak,
         totalRewards: user.totalRewards,
         balanceRewards : user.balanceRewards
       });
-    } else {
+  }
+     else {
       logger.warn(`No Watch Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
       res.status(400).json({ message: "User has no Watch Streak rewards to claim" });
     }
@@ -850,11 +934,11 @@ const watchStreakRewardClaim = async (req, res, next) => {
   }
 };
 
+
 const referStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId, index } = req.body;
 
-    // Log the incoming request
     logger.info(`Attempting to claim Refer Streak Reward for telegramId: ${telegramId}, index: ${index}`);
 
     // Find the user by telegramId
@@ -866,44 +950,75 @@ const referStreakRewardClaim = async (req, res, next) => {
 
     const currentDate = new Date();
 
-    if (user.streak.referStreak.referStreakReward.length > 0 && user.streak.referStreak.referStreakReward[index] != 0) {
+    // Check if reward is valid
+    if (
+      user.streak.referStreak.referStreakReward.length > 0 &&
+      user.streak.referStreak.referStreakReward[index] !== 0
+    ) {
       const rewardAmount = user.streak.referStreak.referStreakReward[index];
+      if (rewardAmount <= 0) {
+        logger.warn(`No refer Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
+        return res.status(400).json({ message: "No rewards to claim." });
+      }
+      // Calculate the total available reward space globally
+      const totalRewardsInSystem = await User.aggregate([
+        { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+      ]);
+      const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+      const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
 
-      // Add to total rewards and streak rewards of the user
-      user.totalRewards += rewardAmount;
-      user.streakRewards += rewardAmount;
-      user.balanceRewards += rewardAmount;
-      // Set the claimed reward to 0
-      user.streak.referStreak.referStreakReward[index] = 0;
+      if (availableSpace <= 0) {
+        logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+        return res.status(403).json({
+          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+        });
+      }
 
-      // Update the claimed refer streak days array
-      const startDay = user.streak.startDay;
-      user.streak.claimedReferDays[index + (startDay - 1)] = true;
+      // Determine how much reward can be claimed
+      const allowedPoints = Math.min(rewardAmount, availableSpace);
 
-      await user.save();
-       // Save the reward record
-       await saveStreakReward(user, rewardAmount);
-       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
+        // Update user's rewards
+        user.totalRewards += allowedPoints;
+        user.streakRewards += allowedPoints;
+        user.balanceRewards += allowedPoints;
 
-      logger.info(`Refer Streak Reward claimed successfully for telegramId: ${telegramId}`);
+        // Reduce the reward amount or mark it as fully claimed
+        user.streak.referStreak.referStreakReward[index] -= allowedPoints;
 
-      res.status(200).json({
-        message: "Refer Streak Rewards claimed successfully",
-        referStreak: user.streak.referStreak,
-        totalRewards: user.totalRewards,
-        balanceRewards : user.balanceRewards
-      });
+        if (user.streak.referStreak.referStreakReward[index] === 0) {
+          // Update the claimed refer streak days array
+          const startDay = user.streak.startDay;
+          user.streak.claimedReferDays[index + (startDay - 1)] = true;
+        }
+
+        // Save the user record
+        await user.save();
+
+        // Save reward record and update daily rewards
+        await saveStreakReward(user, allowedPoints);
+        await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
+
+        logger.info(`Refer Streak Reward claimed successfully for telegramId: ${telegramId}`);
+        return res.status(200).json({
+          message: "Refer Streak Rewards claimed successfully",
+          claimedReward: allowedPoints,
+          remainingReward: rewardAmount - allowedPoints,
+          referStreak: user.streak.referStreak,
+          totalRewards: user.totalRewards,
+          balanceRewards: user.balanceRewards,
+        });
     } else {
       logger.warn(`No Refer Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
-      res.status(400).json({ message: "User has no Refer Streak rewards to claim" });
+      return res.status(400).json({ message: "User has no Refer Streak rewards to claim." });
     }
   } catch (err) {
-    const telegramId = req.body?.telegramId || 'unknown';
-    const index = req.body?.index !== undefined ? req.body.index : 'unknown'; 
+    const telegramId = req.body?.telegramId || "unknown";
+    const index = req.body?.index !== undefined ? req.body.index : "unknown";
     logger.error(`Error while claiming Refer Streak Reward for telegramId: ${telegramId}, index: ${index}. Error: ${err.message}`);
     next(err);
   }
 };
+
 
 const taskStreakRewardClaim = async (req, res, next) => {
   try {
@@ -923,18 +1038,39 @@ const taskStreakRewardClaim = async (req, res, next) => {
 
     if (user.streak.taskStreak.taskStreakReward.length > 0 && user.streak.taskStreak.taskStreakReward[index] != 0) {
       const rewardAmount = user.streak.taskStreak.taskStreakReward[index];
+      if (rewardAmount <= 0) {
+        logger.warn(`No Login Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
+        return res.status(400).json({ message: "No rewards to claim." });
+      }  
+      const totalRewardsInSystem = await User.aggregate([
+        { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+      ]);
+      const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+      const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+      if (availableSpace <= 0) {
+        logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+        return res.status(403).json({
+          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+        });
+      }
+
+      // Determine how much reward can be claimed
+      const allowedPoints = Math.min(rewardAmount, availableSpace);
 
       // Add to total rewards and streak rewards of the user
-      user.totalRewards += rewardAmount;
-      user.streakRewards += rewardAmount;
-      user.balanceRewards += rewardAmount;
+      user.totalRewards += allowedPoints;
+      user.streakRewards += allowedPoints;
+      user.balanceRewards += allowedPoints;
 
       // Set the claimed reward to 0
-      user.streak.taskStreak.taskStreakReward[index] = 0;
+      user.streak.taskStreak.taskStreakReward[index] -= allowedPoints;
 
+      if (user.streak.taskStreak.taskStreakReward[index] === 0) {
       // Update the claimedTaskDays array
       const startDay = user.streak.startDay;
       user.streak.claimedTaskDays[index + (startDay - 1)] = true;
+      }
 
       await user.save();
        // Save the reward record
@@ -945,11 +1081,13 @@ const taskStreakRewardClaim = async (req, res, next) => {
 
       res.status(200).json({
         message: "Task Streak Rewards claimed successfully",
+        claimedReward: allowedPoints,
+        remainingReward: rewardAmount - allowedPoints,
         TaskStreak: user.streak.taskStreak,
         totalRewards: user.totalRewards,
         balanceRewards : user.balanceRewards
       });
-    } else {
+  }else {
       logger.warn(`No Task Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
       res.status(400).json({ message: "User has no Task Streak rewards to claim" });
     }
@@ -977,35 +1115,61 @@ const multiStreakRewardClaim = async (req, res, next) => {
 
     const currentDate = new Date();
 
-    if (user.streak.multiStreak.multiStreakReward.length > 0 && user.streak.multiStreak.multiStreakReward[index] != 0) {
+    if (user.streak.multiStreak.multiStreakReward.length > 0 && user.streak.multiStreak.multiStreakReward[index] !== 0) {
       const rewardAmount = user.streak.multiStreak.multiStreakReward[index];
 
+      // Validate reward amount
+  if (rewardAmount <= 0) {
+    logger.warn(`No Multi Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
+    return res.status(400).json({ message: "No rewards to claim." });
+  }
+
+      const totalRewardsInSystem = await User.aggregate([
+        { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+      ]);
+      const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+      const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+      if (availableSpace <= 0) {
+        logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+        return res.status(403).json({
+          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+        });
+      }
+
+      // Determine how much reward can be claimed
+      const allowedPoints = Math.min(rewardAmount, availableSpace);
+
       // Add to total rewards and streak rewards of the user
-      user.totalRewards += rewardAmount;
-      user.streakRewards += rewardAmount;
-      user.balanceRewards += rewardAmount;
+      user.totalRewards += allowedPoints;
+      user.streakRewards += allowedPoints;
+      user.balanceRewards += allowedPoints;
 
       // Set the claimed reward to 0
-      user.streak.multiStreak.multiStreakReward[index] = 0;
+      user.streak.multiStreak.multiStreakReward[index] -= allowedPoints;
 
+      if (user.streak.multiStreak.multiStreakReward[index] === 0) {
       // Update the claimedMultiDays array
       const startDay = user.streak.startDay;
       user.streak.claimedMultiDays[index + (startDay - 1)] = true;
-
+      }
       await user.save();
        // Save the reward record
-       await saveStreakReward(user, rewardAmount);
-       await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
+       await saveStreakReward(user, allowedPoints);
+       await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
 
       logger.info(`Multi Streak Reward claimed successfully for telegramId: ${telegramId}`);
 
       res.status(200).json({
         message: "Multi Streak Rewards claimed successfully",
+        claimedReward: allowedPoints,
+        remainingReward: rewardAmount - allowedPoints,
         multiStreak: user.streak.multiStreak,
         totalRewards: user.totalRewards,
         balanceRewards : user.balanceRewards
       });
-    } else {
+  
+    }else {
       logger.warn(`No Multi Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`);
       res.status(400).json({ message: "User has no Multi Streak rewards to claim" });
     }
@@ -1030,48 +1194,63 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
       logger.warn(`User not found for telegramId: ${telegramId}`);
       return res.status(404).json({ message: "User not found" });
     }
-    const currentDate = new Date();
 
-    let rewardAmount = 0;
-    for (let i = 0; i < user.streak.multiStreak.streakOfStreakRewards.length; i++) {
-      rewardAmount += user.streak.multiStreak.streakOfStreakRewards[i];
+    // Calculate total Streak of Streak rewards
+    const streakOfStreakRewards = user.streak.multiStreak.streakOfStreakRewards || [];
+    const rewardAmount = streakOfStreakRewards.reduce((sum, reward) => sum + reward, 0);
+
+    // Validate if there are rewards to claim
+    if (rewardAmount <= 0) {
+      logger.warn(`No Streak of Streak rewards available for telegramId: ${telegramId}`);
+      return res.status(400).json({ message: "No rewards to claim." });
     }
 
-    if (rewardAmount>0) {
-      logger.info(`Streak of Streak Rewards available for telegramId: ${telegramId}`);
-      user.streak.multiStreak.lastSOSReward = user.streak.multiStreak.streakOfStreakRewards[user.streak.multiStreak.streakOfStreakRewards.length - 1];
-      // Add to total reward of users
-      user.totalRewards += rewardAmount;
-      // Add to streak reward of users
-      user.streakRewards += rewardAmount;
-      user.balanceRewards += rewardAmount;
+    // Calculate available space in the global limit
+    const totalRewardsInSystem = await User.aggregate([
+      { $group: { _id: null, total: { $sum: "$balanceRewards" } } }
+    ]);
+    const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+    const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
 
-      for (let i = 0; i < user.streak.multiStreak.streakOfStreakRewards.length; i++) {
-        user.streak.multiStreak.streakOfStreakRewards[i] = 0;
-      }
-
-      await user.save();
-      // Save the reward record
-      await saveStreakReward(user, rewardAmount);
-      await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
-
-      logger.info(`Streak of Streak Rewards claimed successfully for telegramId: ${telegramId}`);
-
-      res.status(200).json({
-        message: "Streak of Streak Rewards claimed successfully",
-        multiStreak: user.streak.multiStreak,
-        SOSRewardClaimed: rewardAmount,
-        totalRewards: user.totalRewards,
-                balanceRewards : user.balanceRewards
-
+    if (availableSpace <= 0) {
+      logger.warn(`The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`);
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
       });
-    } else {
-      logger.warn(`No Streak of Streak rewards to claim for telegramId: ${telegramId}`);
-      res.status(400).json({ message: "User has no Streak of Streak rewards to claim" });
     }
+
+    // Determine how much reward can be claimed
+    const allowedPoints = Math.min(rewardAmount, availableSpace);
+
+    // Update user's rewards
+    user.totalRewards += allowedPoints;
+    user.streakRewards += allowedPoints;
+    user.balanceRewards += allowedPoints;
+
+    // Reset streak of streak rewards only for the claimed amount
+    user.streak.multiStreak.streakOfStreakRewards.fill(0);
+
+    // Update the last SOS reward value
+    user.streak.multiStreak.lastSOSReward = allowedPoints;
+
+    await user.save();
+
+    // Save the reward record
+    await saveStreakReward(user, allowedPoints);
+    await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
+
+    logger.info(`Streak of Streak Rewards claimed successfully for telegramId: ${telegramId}`);
+    return res.status(200).json({
+      message: "Streak of Streak Rewards claimed successfully.",
+      claimedReward: allowedPoints,
+      remainingReward: rewardAmount - allowedPoints,
+      multiStreak: user.streak.multiStreak,
+      SOSRewardClaimed: allowedPoints,
+      totalRewards: user.totalRewards,
+      balanceRewards: user.balanceRewards
+    });
   } catch (err) {
-    const telegramId = req.body?.telegramId || 'unknown';
-    const index = req.body?.index !== undefined ? req.body.index : 'unknown'; 
+    const telegramId = req.body?.telegramId || "unknown";
     logger.error(`Error while claiming Streak of Streak Rewards for telegramId: ${telegramId}. Error: ${err.message}`);
     next(err);
   }

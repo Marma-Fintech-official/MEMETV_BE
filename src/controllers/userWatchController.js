@@ -615,6 +615,7 @@ const addWalletAddress = async (req, res, next) => {
   }
 }
 
+
 const dailyRewards = async (req, res, next) => {
   try {
     let { telegramId } = req.params;
@@ -647,16 +648,24 @@ const dailyRewards = async (req, res, next) => {
 
     logger.info(`Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}`);
 
+    // Process records to add the stakeButton field
+    const processedRewards = dailyRewardsRecords.map((reward) => {
+      const createdAtDate = new Date(reward.createdAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset the time part to compare only dates
+
+      // Enable stakeButton for all days after the createdAt day
+      const stakeButton = today > createdAtDate ? 'enable' : 'disable';
+      return { ...reward.toObject(), stakeButton };
+    });
+
     // Send the records in the response
-    return res.status(200).json({ dailyRewards: dailyRewardsRecords });
+    return res.status(200).json({ dailyRewards: processedRewards });
   } catch (err) {
     logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);
     next(err);
   }
 };
-
-
-
 
 
 module.exports = {
