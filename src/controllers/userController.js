@@ -9,9 +9,9 @@ const {
   thresholds,
   milestones
 } = require('../helpers/constants')
+const { decryptMessage } = require('../helpers/crypto')
 
 const TOTALREWARDS_LIMIT = 21000000000
-
 
 // Function to generate a 5-character alphanumeric identifier
 const generateRefId = () => {
@@ -105,9 +105,13 @@ const updateLevel = async (user, isFromStaking = false) => {
 }
 
 const login = async (req, res, next) => {
-  let { name, referredById, telegramId } = req.body
-
   try {
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv))
+    let { name, referredById, telegramId } = decryptedData
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -392,7 +396,14 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = req.body
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    console.log(decryptedData)
+
+    const { telegramId, boosters, gamePoints } = decryptedData
 
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
@@ -573,7 +584,13 @@ const userGameRewards = async (req, res, next) => {
 
 const userTaskRewards = async (req, res, next) => {
   try {
-    const { telegramId, taskPoints, channel } = req.body
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+
+    const { telegramId, taskPoints, channel } = decryptedData
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`
@@ -742,7 +759,12 @@ const userTaskRewards = async (req, res, next) => {
 
 const purchaseBooster = async (req, res, next) => {
   try {
-    const { telegramId, boosterPoints, booster, boosterCount } = req.body
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const { telegramId, boosterPoints, booster, boosterCount } = decryptedData
 
     logger.info(
       `Received request to purchase booster for telegramId: ${telegramId}`
@@ -867,7 +889,13 @@ const purchaseBooster = async (req, res, next) => {
 
 const purchaseGameCards = async (req, res, next) => {
   try {
-    const { telegramId, gamePoints } = req.body
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+
+    const { telegramId, gamePoints } = decryptedData
 
     // Get the current date and time
     const now = new Date()
@@ -981,7 +1009,12 @@ const purchaseGameCards = async (req, res, next) => {
 
 const stakingRewards = async (req, res, next) => {
   try {
-    const { stakingId } = req.body
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const { stakingId } = decryptedData
     // Validate stakingId
     if (!isValidObjectId(stakingId)) {
       logger.warn(`Invalid stakingId format: ${stakingId}`)

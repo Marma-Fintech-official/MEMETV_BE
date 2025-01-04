@@ -48,6 +48,7 @@ if (cluster.isMaster) {
 
   const app = express()
 
+
   // Connect to MongoDB
   mongoose
     .connect(process.env.DBURL, {

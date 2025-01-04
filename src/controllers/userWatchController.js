@@ -3,6 +3,7 @@ const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
+
 const { decryptMessage } = require('../helpers/crypto')
 const startDate = new Date('2024-12-03') // Project start date
 
@@ -72,9 +73,8 @@ const userWatchRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'Missing encrypted data or IV' })
     }
     const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    // logger.info('Decrypted Payload', decryptedData)
 
-    const { telegramId, } = decryptedData
+    const { telegramId,userWatchSeconds,boosterPoints,boosters } = decryptedData
 
     const now = new Date()
     const currentPhase = calculatePhase(now, startDate)
@@ -246,7 +246,7 @@ const userWatchRewards = async (req, res, next) => {
     }
 
     // Remove booster counts
-    boosters.forEach(boosterType => {
+    boosters?.forEach(boosterType => {
       const userBooster = user.boosters.find(b => b.type === boosterType)
       if (userBooster && userBooster.count > 0) {
         userBooster.count -= 1
@@ -607,10 +607,13 @@ const stakingHistory = async (req, res, next) => {
 }
 
 const addWalletAddress = async (req, res, next) => {
-  const { telegramId } = req.params
-  const { userWalletAddress } = req.body
-
   try {
+    const { encryptedData, iv } = req.body
+    if (!encryptedData || !iv) {
+      return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    }
+    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const { telegramId,userWalletAddress } = decryptedData
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
 

@@ -22,8 +22,8 @@ router.post(
   '/streak',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      userWatchSeconds: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   streak
@@ -33,7 +33,8 @@ router.post(
   '/streakOfStreak',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   streakOfStreak
@@ -43,8 +44,8 @@ router.post(
   '/loginStreakRewardClaim',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      index: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   loginStreakRewardClaim
@@ -54,8 +55,8 @@ router.post(
   '/watchStreakRewardClaim',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      index: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   watchStreakRewardClaim
@@ -65,8 +66,8 @@ router.post(
   '/referStreakRewardClaim',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      index: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   referStreakRewardClaim
@@ -76,8 +77,8 @@ router.post(
   '/taskStreakRewardClaim',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      index: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   taskStreakRewardClaim
@@ -87,8 +88,8 @@ router.post(
   '/multiStreakRewardClaim',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      index: Joi.number().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   multiStreakRewardClaim
@@ -98,7 +99,8 @@ router.post(
   '/streakOfStreakRewardClaim',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   streakOfStreakRewardClaim
@@ -108,8 +110,8 @@ router.post(
   '/updateClaimedLoginDaysArray',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      claimedDayArray: Joi.array().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   updateClaimedLoginDaysArray
@@ -119,8 +121,8 @@ router.post(
   '/updateClaimedWatchDaysArray',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      claimedDayArray: Joi.array().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   updateClaimedWatchDaysArray
@@ -130,8 +132,8 @@ router.post(
   '/updateClaimedReferDaysArray',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      claimedDayArray: Joi.array().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   updateClaimedReferDaysArray
@@ -141,8 +143,8 @@ router.post(
   '/updateClaimedTaskDaysArray',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      claimedDayArray: Joi.array().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   updateClaimedTaskDaysArray
@@ -152,8 +154,8 @@ router.post(
   '/updateClaimedMultiDaysArray',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      claimedDayArray: Joi.array().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   updateClaimedMultiDaysArray

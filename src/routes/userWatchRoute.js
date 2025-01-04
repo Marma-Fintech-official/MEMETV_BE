@@ -85,11 +85,11 @@ stakingHistory
 )
 
 router.post(
-  '/addWalletAddress/:telegramId',
+  '/addWalletAddress',
   celebrate({
     [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      userWalletAddress: Joi.string().required()
+      encryptedData: Joi.string().required(),
+      iv: Joi.required(),
     })
   }),
   addWalletAddress
