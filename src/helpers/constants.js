@@ -1,7 +1,7 @@
 // Level-up bonuses for each level
 const levelUpBonuses = [
-  10, // Level 2 to Level 3
-  20, // Level 3 to Level 4
+  1000, // Level 2 to Level 3
+  10000, // Level 3 to Level 4
   50000, // Level 4 to Level 5
   100000, // Level 5 to Level 6
   500000, // Level 6 to Level 7
