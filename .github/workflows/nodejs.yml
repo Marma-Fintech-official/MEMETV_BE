@@ -65,6 +65,14 @@ jobs:
             sudo systemctl enable docker
           fi
 
+          # Install Git if not installed
+          if ! command -v git &> /dev/null; then
+              echo "Git not found, installing..."
+              sudo yum install -y git
+              # Verify git installation
+              git --version
+          fi
+
           # Install Node.js and npm if not installed
           if ! command -v node &> /dev/null; then
               echo "Node.js not found, installing..."
