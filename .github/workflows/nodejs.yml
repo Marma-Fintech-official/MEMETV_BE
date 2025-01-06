@@ -65,6 +65,16 @@ jobs:
             sudo systemctl enable docker
           fi
 
+          # Install Node.js and npm if not installed
+          if ! command -v node &> /dev/null; then
+              echo "Node.js not found, installing..."
+              curl -sL https://rpm.nodesource.com/setup_18.x | sudo bash -
+              sudo yum install -y nodejs npm
+              # Verify installation
+              node --version
+              npm --version
+          fi
+
           # Install PM2 if not installed
           if ! command -v pm2 &> /dev/null; then
             echo "PM2 not found, installing..."
