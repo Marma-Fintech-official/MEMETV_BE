@@ -49,7 +49,7 @@ jobs:
           set -e
 
           # Variables
-          DEPLOY_DIR=/home/ubuntu/MEMETV_BE
+          DEPLOY_DIR=/home/ec2-user/MEMETV_BE
           CONTAINER_NAME=meme-tv
           REPO_URL=https://github.com/Marma-Fintech-official/MEMETV_BE.git
 
@@ -110,4 +110,4 @@ jobs:
           )
 
           # Execute deployment script on EC2
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "$DEPLOY_SCRIPT"
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "$DEPLOY_SCRIPT"
