@@ -48,6 +48,14 @@ if (cluster.isMaster) {
 
   const app = express()
 
+  //**************************** */
+  const { encryptMessage, decryptMessage } = require('./src/helpers/crypto');
+  const testPayload = { name: "Danica", telegramId: "Danica" };
+  const { encryptedData, ivString } = encryptMessage(JSON.stringify(testPayload));
+  console.log("Encrypted Data:>>>>>>>>>", encryptedData);
+  console.log("IV String:>>>>>>>>>>>", ivString);
+  //********************************* */
+
   // Connect to MongoDB
   mongoose
     .connect(process.env.DBURL, {

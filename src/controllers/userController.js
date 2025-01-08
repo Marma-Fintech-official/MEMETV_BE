@@ -9,7 +9,8 @@ const {
   thresholds,
   milestones
 } = require('../helpers/constants')
-const { decryptMessage } = require('../helpers/crypto')
+const {decryptedDatas} = require('../helpers/Decrypt');
+const crypto= require('crypto');
 
 const TOTALREWARDS_LIMIT = 21000000000
 
@@ -106,12 +107,7 @@ const updateLevel = async (user, isFromStaking = false) => {
 
 const login = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv))
-    let { name, referredById, telegramId } = decryptedData
+    let { name, referredById, telegramId } = decryptedDatas(req);
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -396,14 +392,7 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    console.log(decryptedData)
-
-    const { telegramId, boosters, gamePoints } = decryptedData
+    const { telegramId, boosters, gamePoints } = decryptedDatas(req);
 
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
@@ -584,13 +573,7 @@ const userGameRewards = async (req, res, next) => {
 
 const userTaskRewards = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-
-    const { telegramId, taskPoints, channel } = decryptedData
+    const { telegramId, taskPoints, channel } = decryptedDatas(req);
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`
@@ -759,12 +742,7 @@ const userTaskRewards = async (req, res, next) => {
 
 const purchaseBooster = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, boosterPoints, booster, boosterCount } = decryptedData
+    const { telegramId, boosterPoints, booster, boosterCount } = decryptedDatas(req);
 
     logger.info(
       `Received request to purchase booster for telegramId: ${telegramId}`
@@ -889,13 +867,7 @@ const purchaseBooster = async (req, res, next) => {
 
 const purchaseGameCards = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-
-    const { telegramId, gamePoints } = decryptedData
+    const { telegramId, gamePoints } = decryptedDatas(req);
 
     // Get the current date and time
     const now = new Date()
@@ -1009,12 +981,7 @@ const purchaseGameCards = async (req, res, next) => {
 
 const stakingRewards = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { stakingId } = decryptedData
+    const { stakingId } = decryptedDatas(req);
     // Validate stakingId
     if (!isValidObjectId(stakingId)) {
       logger.warn(`Invalid stakingId format: ${stakingId}`)
@@ -1088,6 +1055,7 @@ const stakingRewards = async (req, res, next) => {
     next(err)
   }
 }
+
 
 module.exports = {
   login,
