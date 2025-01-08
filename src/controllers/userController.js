@@ -385,7 +385,7 @@ const login = async (req, res, next) => {
     })
   } catch (err) {
     logger.error(
-      `Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
+      `Error processing login telegramId: ${req.body.telegramId} - ${err.message}`
     )
     next(err)
   }
