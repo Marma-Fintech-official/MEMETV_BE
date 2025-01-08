@@ -16,7 +16,7 @@ const {
 const {decryptedDatas} = require('../helpers/Decrypt');
 const UserDailyReward = require('../models/userDailyrewardsModel') // Import the model
 require('dotenv').config()
-const TOTALREWARDS_LIMIT = 40000;
+const TOTALREWARDS_LIMIT = 21000000000;
 
 const saveStreakReward = async (user, rewardPoints) => {
   try {
