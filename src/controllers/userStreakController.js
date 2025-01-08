@@ -1038,7 +1038,12 @@ const loginStreakRewardClaim = async (req, res, next) => {
     logger.error(
       `Error while claiming Login Streak Reward for telegramId: ${telegramId}. Error: ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1236,7 +1241,12 @@ const referStreakRewardClaim = async (req, res, next) => {
     logger.error(
       `Error while claiming Refer Streak Reward for telegramId: ${telegramId}, index: ${index}. Error: ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1332,7 +1342,12 @@ const taskStreakRewardClaim = async (req, res, next) => {
     logger.error(
       `Error while claiming Task Streak Reward for telegramId: ${telegramId}, index: ${index}. Error: ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1430,7 +1445,12 @@ const multiStreakRewardClaim = async (req, res, next) => {
     logger.error(
       `Error while claiming Multi Streak Reward for telegramId: ${telegramId}, index: ${index}. Error: ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1519,7 +1539,12 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
     logger.error(
       `Error while claiming Streak of Streak Rewards for telegramId: ${telegramId}. Error: ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1573,7 +1598,12 @@ const unClaimedStreakRewardsClaim = async user => {
     } else {
     }
   } catch (err) {
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1625,7 +1655,12 @@ const updateClaimedLoginDaysArray = async (req, res, next) => {
     )
 
     // Pass the error to the next middleware
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1677,8 +1712,12 @@ const updateClaimedWatchDaysArray = async (req, res, next) => {
       `An error occurred while updating claimedWatchDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
 
-    // Pass the error to the next middleware
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1730,8 +1769,12 @@ const updateClaimedReferDaysArray = async (req, res, next) => {
       `An error occurred while updating claimedReferDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
 
-    // Pass the error to the next middleware
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1783,8 +1826,12 @@ const updateClaimedTaskDaysArray = async (req, res, next) => {
       `An error occurred while updating claimedTaskDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
 
-    // Pass the error to the next middleware
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1836,8 +1883,12 @@ const updateClaimedMultiDaysArray = async (req, res, next) => {
       `An error occurred while updating claimedMultiDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
 
-    // Pass the error to the next middleware
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 

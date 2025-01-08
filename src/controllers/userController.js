@@ -385,9 +385,16 @@ const login = async (req, res, next) => {
     })
   } catch (err) {
     logger.error(
-      `Error processing login telegramId: ${req.body.telegramId} - ${err.message}`
-    )
-    next(err)
+      `Error processing login for telegramId: ${req.body.telegramId} - ${err.message}`
+    );
+  
+    // Respond with a generic message
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -568,7 +575,12 @@ const userGameRewards = async (req, res, next) => {
     logger.error(
       `Error processing game rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -737,7 +749,12 @@ const userTaskRewards = async (req, res, next) => {
     logger.error(
       `Error processing task rewards for user with telegramId: ${req.body.telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -862,7 +879,12 @@ const purchaseBooster = async (req, res, next) => {
     logger.error(
       `Error processing booster purchase for telegramId: ${req.body.telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -976,7 +998,12 @@ const purchaseGameCards = async (req, res, next) => {
     logger.error(
       `Error processing game card purchase for telegramId: ${req.body.telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -1053,7 +1080,12 @@ const stakingRewards = async (req, res, next) => {
     logger.error(
       `Error processing staking rewards for stakingId: ${req.body.stakingId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 

@@ -328,7 +328,12 @@ const userDetails = async (req, res, next) => {
         err.message
       }`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -367,7 +372,12 @@ const boosterDetails = async (req, res, next) => {
     logger.error(
       `Error fetching booster details for telegramId: ${telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -432,7 +442,12 @@ const popularUser = async (req, res, next) => {
     logger.error(
       `Error retrieving popular user data for telegramId: ${telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -493,8 +508,7 @@ const yourReferrals = async (req, res, next) => {
       return {
         userId: ref.userId,
         name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
-        totalRewards: refUser ? refUser.totalRewards : 0, // Handle case where referenced user is not found
-        balanceRewards: refUser? refUser.balanceRewards : 0,
+        balanceRewards: user? user.balanceRewards : 0,
         createdAt: ref.createdAt
       }
     })
@@ -515,18 +529,17 @@ const yourReferrals = async (req, res, next) => {
     logger.error(
       `Error retrieving referrals for telegramId: ${telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
 const tutorialStatus = async (req, res, next) => {
   try {
-    // const { encryptedData, iv } = req.body
-    // if (!encryptedData || !iv) {
-    //   return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    // }
-    // const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    // logger.info('Decrypted Payload', decryptedData)
     
     const { telegramId, tutorialStatus } = decryptedDatas(req);
     console.log( telegramId, tutorialStatus,' telegramId, tutorialStatus');
@@ -602,7 +615,12 @@ const stakingHistory = async (req, res, next) => {
     logger.error(
       `Error retrieving staking history for telegramId: ${req.params.telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -634,7 +652,12 @@ const addWalletAddress = async (req, res, next) => {
     logger.error(
       `Error updating wallet address for telegramId: ${telegramId} - ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
@@ -725,6 +748,11 @@ const dailyRewards = async (req, res, next) => {
     });
   } catch (err) {
     logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
 };
