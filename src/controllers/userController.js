@@ -183,7 +183,7 @@ const login = async (req, res, next) => {
 
         referringUser.refferalIds.push({ userId: user._id })
 
-        const referralReward = 1000 // Fixed reward for referring a user
+        const referralReward = 10000// Fixed reward for referring a user
         const numberOfReferrals = referringUser.refferalIds.length
 
         let milestoneReward = 0
