@@ -494,6 +494,7 @@ const yourReferrals = async (req, res, next) => {
         userId: ref.userId,
         name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
         totalRewards: refUser ? refUser.totalRewards : 0, // Handle case where referenced user is not found
+        balanceRewards: refUser? refUser.balanceRewards : 0,
         createdAt: ref.createdAt
       }
     })
