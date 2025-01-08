@@ -273,7 +273,8 @@ const userWatchRewards = async (req, res, next) => {
       level: user.level,
       levelUpRewards: user.levelUpRewards,
       watchRewards: user.watchRewards,
-      currentPhase: currentPhase
+      currentPhase: currentPhase,
+      boosters: user.boosters
     })
   } catch (err) {
     logger.error(
