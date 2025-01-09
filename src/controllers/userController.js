@@ -343,21 +343,23 @@ const login = async (req, res, next) => {
       }
     } else {
       // Existing user login logic
-      const lastLoginDate = new Date(user.lastLogin)
-      if (currentDate > lastLoginDate) {
+      const lastLoginDate = new Date(user.lastLogin);
+
+      if (lastLoginDate < today) {
+        // Add a level-up booster only once per day
         const levelUpBooster = user.boosters.find(
-          booster => booster.type === 'levelUp'
-        )
+          (booster) => booster.type === 'levelUp'
+        );
 
         if (levelUpBooster) {
-          levelUpBooster.count += 1
+          levelUpBooster.count += 1;
         } else {
-          user.boosters.push({ type: 'levelUp', count: 1 })
+          user.boosters.push({ type: 'levelUp', count: 1 });
         }
-      }
 
-      user.lastLogin = currentDate
-      await user.save()
+        user.lastLogin = currentDate;
+        await user.save();
+      }
     }
 
     // Update daily rewards in userDailyreward model
