@@ -3,7 +3,6 @@ const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
-
 const {decryptedDatas} = require('../helpers/Decrypt');
 const startDate = new Date('2024-12-03') // Project start date
 
@@ -58,10 +57,14 @@ const updateUserDailyReward = async (
         `Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${totalDailyRewards}`
       )
     }
-  } catch (error) {
+  } catch (err) {
     logger.error(
-      `Error updating daily rewards for telegramId: ${telegramId} - ${error.message}`
+      `Error updating daily rewards for telegramId: ${telegramId} - ${err.message}`
     )
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+    next(err)
   }
 }
 
@@ -328,7 +331,10 @@ const userDetails = async (req, res, next) => {
         err.message
       }`
     )
-z
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+    next(err)
   }
 }
 
@@ -565,7 +571,7 @@ const tutorialStatus = async (req, res, next) => {
     logger.error(`Error updating tutorial status: ${err.message}`)
     res
       .status(500)
-      .json({ error: 'Internal Server Error', details: err.message }); 
+      .json({ error: 'Something went wrong', details: err.message }); 
       next(err)
   }
 }

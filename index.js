@@ -13,7 +13,7 @@ const rateLimit = require('express-rate-limit')
 // const { encryptMessage } = require('./src/helpers/crypto')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token,{polling:true})
+  const bot = new TelegramBot(token, { polling: true })
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
@@ -48,14 +48,13 @@ if (cluster.isMaster) {
   }
 
   const app = express()
-//     const  {encryptedData,ivString } = encryptMessage(JSON.stringify({
-//       "telegramId": "5794983263",
-//       "gamePoints": "2000",
-//       "boosters": ["2x", "2x", "3x", "3x"]
-// }));
-//   console.log("encryptedData",encryptedData);
-//   console.log("ivString",ivString);
-
+  //     const  {encryptedData,ivString } = encryptMessage(JSON.stringify({
+  //       "telegramId": "5794983263",
+  //       "gamePoints": "2000",
+  //       "boosters": ["2x", "2x", "3x", "3x"]
+  // }));
+  //   console.log("encryptedData",encryptedData);
+  //   console.log("ivString",ivString);
 
   // Connect to MongoDB
   mongoose
@@ -97,7 +96,7 @@ if (cluster.isMaster) {
 
   // Listen on the specified port
   const port = process.env.PORT || 8888
-  app.listen(port, '0.0.0.0',() => {
+  app.listen(port, '0.0.0.0', () => {
     logger.info(
       `🏖️ 🔥  Worker ${process.pid} is listening on port ${port} 🏖️ 🔥 `
     )
