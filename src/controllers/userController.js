@@ -10,7 +10,6 @@ const {
   milestones
 } = require('../helpers/constants')
 const {decryptedDatas} = require('../helpers/Decrypt');
-const crypto= require('crypto');
 
 const TOTALREWARDS_LIMIT = 21000000000
 

@@ -13,7 +13,7 @@ const rateLimit = require('express-rate-limit')
 // const { encryptMessage } = require('./src/helpers/crypto')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token)
+  const bot = new TelegramBot(token,{polling:true})
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
