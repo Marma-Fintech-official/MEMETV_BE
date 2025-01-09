@@ -28,7 +28,7 @@ if (cluster.isMaster) {
           inline_keyboard: [
             [
               {
-                text: '#doNothinG',
+                text: '#doNothing',
                 web_app: {
                   url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
                 }
