@@ -97,7 +97,7 @@ if (cluster.isMaster) {
 
   // Listen on the specified port
   const port = process.env.PORT || 8888
-  app.listen(port, () => {
+  app.listen(port, '0.0.0.0',() => {
     logger.info(
       `🏖️ 🔥  Worker ${process.pid} is listening on port ${port} 🏖️ 🔥 `
     )

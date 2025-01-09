@@ -473,6 +473,7 @@ const yourReferrals = async (req, res, next) => {
 
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
+    // console.log(user);
 
     if (!user) {
       logger.warn(`User with telegramId: ${telegramId} not found`)
@@ -488,9 +489,10 @@ const yourReferrals = async (req, res, next) => {
 
     const userIds = paginatedReferenceIds.map(ref => ref.userId)
 
+
     // Find the referenced users and select the required fields
     const referencedUsers = await User.find({ _id: { $in: userIds } }).select(
-      'name totalRewards'
+      'name balanceRewards'
     )
 
     // Log the number of referenced users found
@@ -508,7 +510,7 @@ const yourReferrals = async (req, res, next) => {
       return {
         userId: ref.userId,
         name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
-        balanceRewards: user? user.balanceRewards : 0,
+        balanceRewards:  refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
         createdAt: ref.createdAt
       }
     })
@@ -537,6 +539,7 @@ const yourReferrals = async (req, res, next) => {
     next(err);
   }
 }
+
 
 const tutorialStatus = async (req, res, next) => {
   try {
