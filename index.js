@@ -22,13 +22,13 @@ if (cluster.isMaster) {
     logger.info(`Received start command with referredId: ${referredId}`)
     bot.sendMessage(
       chatId,
-      'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points. Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
+      'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points, Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
       {
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: '#doNothings',
+                text: '#doNothinG',
                 web_app: {
                   url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
                 }
