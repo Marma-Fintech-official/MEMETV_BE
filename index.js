@@ -30,7 +30,7 @@ if (cluster.isMaster) {
               {
                 text: '#doNothing',
                 web_app: {
-                  url: `https://zippy-smakager-45b1ee.netlify.app/?start=${referredId}`
+                  url: `https://joyful-frangollo-2fafea.netlify.app/?start=${referredId}`
                 }
               }
             ]
