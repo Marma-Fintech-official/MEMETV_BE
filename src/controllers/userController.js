@@ -25,7 +25,7 @@ const generateRefId = () => {
   return result
 }
 
-const startDate = new Date('2024-12-03') // Project start date
+const startDate = new Date('2025-01-09') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
   const oneDay = 24 * 60 * 60 * 1000

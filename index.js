@@ -30,7 +30,7 @@ if (cluster.isMaster) {
               {
                 text: '#doNothing',
                 web_app: {
-                  url: `https://joyful-frangollo-2fafea.netlify.app/?start=${referredId}`
+                  url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
                 }
               }
             ]
@@ -84,7 +84,7 @@ if (cluster.isMaster) {
   app.use(router)
 
   app.get('/', (req, res) => {
-    res.send(' ***🔥🔥 TheMemeTv Backend Server is Running 🔥🔥*** ')
+    res.send(' ***🔥🔥 TheMemeTv Backend Server 2 is Running 🔥🔥*** ')
   })
 
   // Rate limiter

@@ -4,7 +4,7 @@ const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
 const {decryptedDatas} = require('../helpers/Decrypt');
-const startDate = new Date('2024-12-03') // Project start date
+const startDate = new Date('2025-01-09') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
   const oneDay = 24 * 60 * 60 * 1000;
