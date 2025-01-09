@@ -13,10 +13,10 @@ const {
   updateClaimedDayArray,
   distributionStartDate,
 } = require('../helpers/constants')
-const { decryptMessage } = require('../helpers/crypto')
+const {decryptedDatas} = require('../helpers/Decrypt');
 const UserDailyReward = require('../models/userDailyrewardsModel') // Import the model
 require('dotenv').config()
-const TOTALREWARDS_LIMIT = 40000
+const TOTALREWARDS_LIMIT = 40000;
 
 const saveStreakReward = async (user, rewardPoints) => {
   try {
@@ -653,12 +653,7 @@ const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
 //function to calculate streaks(login, watch, refer, task)
 const streak = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, userWatchSeconds } = decryptedData
+    const { telegramId, userWatchSeconds } = decryptedDatas(req);
 
     // Log the incoming request
     logger.info(
@@ -865,12 +860,7 @@ const calculateMultiStreak = async (user, todaysLogin, differenceInDays) => {
 //function to calculate streak of streaks(multi and sos)
 const streakOfStreak = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId } = decryptedData
+    const { telegramId } = decryptedDatas(req);
 
     // Log the incoming request
     logger.info(
@@ -955,12 +945,7 @@ const streakOfStreak = async (req, res, next) => {
 
 const loginStreakRewardClaim = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, index } = decryptedData
+    const { telegramId, index } = decryptedDatas(req);
 
     logger.info(
       `Attempting to claim Login Streak Reward for telegramId: ${telegramId}, index: ${index}`
@@ -1059,12 +1044,7 @@ const loginStreakRewardClaim = async (req, res, next) => {
 
 const watchStreakRewardClaim = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, index } = decryptedData
+    const { telegramId, index } = decryptedDatas(req);
 
     // Log the incoming request
     logger.info(
@@ -1164,12 +1144,7 @@ const watchStreakRewardClaim = async (req, res, next) => {
 
 const referStreakRewardClaim = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, index } = decryptedData
+    const { telegramId, index } = decryptedDatas(req);
 
     logger.info(
       `Attempting to claim Refer Streak Reward for telegramId: ${telegramId}, index: ${index}`
@@ -1267,12 +1242,7 @@ const referStreakRewardClaim = async (req, res, next) => {
 
 const taskStreakRewardClaim = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, index } = decryptedData
+    const { telegramId, index } = decryptedDatas(req);
 
     // Log the incoming request
     logger.info(
@@ -1368,12 +1338,7 @@ const taskStreakRewardClaim = async (req, res, next) => {
 
 const multiStreakRewardClaim = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, index } = decryptedData
+    const { telegramId, index } = decryptedDatas(req);
 
     // Log the incoming request
     logger.info(
@@ -1471,12 +1436,7 @@ const multiStreakRewardClaim = async (req, res, next) => {
 
 const streakOfStreakRewardClaim = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId } = decryptedData
+    const { telegramId } = decryptedDatas(req);
 
     // Log the incoming request
     logger.info(
@@ -1623,7 +1583,7 @@ const updateClaimedLoginDaysArray = async (req, res, next) => {
     if (!encryptedData || !iv) {
       return res.status(400).json({ message: 'Missing encrypted data or IV' })
     }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
     const { telegramId, claimedDayArray } = decryptedData
 
     // Log the incoming request
@@ -1675,7 +1635,7 @@ const updateClaimedWatchDaysArray = async (req, res, next) => {
     if (!encryptedData || !iv) {
       return res.status(400).json({ message: 'Missing encrypted data or IV' })
     }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
 
     const { telegramId, claimedDayArray } = decryptedData
 
@@ -1728,7 +1688,7 @@ const updateClaimedReferDaysArray = async (req, res, next) => {
     if (!encryptedData || !iv) {
       return res.status(400).json({ message: 'Missing encrypted data or IV' })
     }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
 
     const { telegramId, claimedDayArray } = decryptedData
 
@@ -1781,7 +1741,7 @@ const updateClaimedTaskDaysArray = async (req, res, next) => {
     if (!encryptedData || !iv) {
       return res.status(400).json({ message: 'Missing encrypted data or IV' })
     }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
 
     const { telegramId, claimedDayArray } = decryptedData
 
@@ -1834,7 +1794,7 @@ const updateClaimedMultiDaysArray = async (req, res, next) => {
     if (!encryptedData || !iv) {
       return res.status(400).json({ message: 'Missing encrypted data or IV' })
     }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
 
     const { telegramId, claimedDayArray } = decryptedData
 

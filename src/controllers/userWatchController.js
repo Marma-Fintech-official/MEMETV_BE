@@ -4,7 +4,7 @@ const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
 
-const { decryptMessage } = require('../helpers/crypto')
+const {decryptedDatas} = require('../helpers/Decrypt');
 const startDate = new Date('2024-12-03') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
@@ -68,15 +68,9 @@ const updateUserDailyReward = async (
 const userWatchRewards = async (req, res, next) => {
   
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    const { telegramId,userWatchSeconds,boosterPoints,boosters } = decryptedDatas(req);
 
-    const { telegramId,userWatchSeconds,boosterPoints,boosters } = decryptedData
-
-    const now = new Date()
+    const now = new Date();
     const currentPhase = calculatePhase(now, startDate)
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
@@ -525,13 +519,17 @@ const yourReferrals = async (req, res, next) => {
 
 const tutorialStatus = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
+    // const { encryptedData, iv } = req.body
+    // if (!encryptedData || !iv) {
+    //   return res.status(400).json({ message: 'Missing encrypted data or IV' })
+    // }
+    // const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
     // logger.info('Decrypted Payload', decryptedData)
-    const { telegramId, tutorialStatus } = decryptedData
+    
+    const { telegramId, tutorialStatus } = decryptedDatas(req);
+    console.log( telegramId, tutorialStatus,' telegramId, tutorialStatus');
+
+    
     if (!telegramId || tutorialStatus === undefined) {
       return res.status(400).json({ message: 'Invalid payload structure' })
     }
@@ -608,12 +606,8 @@ const stakingHistory = async (req, res, next) => {
 
 const addWalletAddress = async (req, res, next) => {
   try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptMessage(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId,userWalletAddress } = decryptedData
+     // Ensure decryptedData is parsed JSON
+    const { telegramId,userWalletAddress } = decryptedDatas(req);
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
 
@@ -732,15 +726,6 @@ const dailyRewards = async (req, res, next) => {
     next(err);
   }
 };
-
-
-
-
-
-
-
-
-
 module.exports = {
   userWatchRewards,
   userDetails,
