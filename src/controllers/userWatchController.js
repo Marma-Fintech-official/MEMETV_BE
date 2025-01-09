@@ -282,7 +282,7 @@ const userWatchRewards = async (req, res, next) => {
         err.message
       }`
     )
-    next(err)
+
   }
 }
 
@@ -328,12 +328,7 @@ const userDetails = async (req, res, next) => {
         err.message
       }`
     )
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+z
   }
 }
 
@@ -570,7 +565,8 @@ const tutorialStatus = async (req, res, next) => {
     logger.error(`Error updating tutorial status: ${err.message}`)
     res
       .status(500)
-      .json({ error: 'Internal Server Error', details: err.message })
+      .json({ error: 'Internal Server Error', details: err.message }); 
+      next(err)
   }
 }
 
