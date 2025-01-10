@@ -1,0 +1,502 @@
+[
+  {
+    "promoCode": "6D74F",
+    "reward": 50,
+    "status": true
+  },
+  {
+    "promoCode": "2DFB4",
+    "reward": 100,
+    "status": true
+  },
+  {
+    "promoCode": "8E866",
+    "reward": 150,
+    "status": true
+  },
+  {
+    "promoCode": "A00C2",
+    "reward": 200,
+    "status": true
+  },
+  {
+    "promoCode": "F6049",
+    "reward": 250,
+    "status": true
+  },
+  {
+    "promoCode": "2FEAE",
+    "reward": 300,
+    "status": true
+  },
+  {
+    "promoCode": "A175B",
+    "reward": 50,
+    "status": true
+  },
+  {
+    "promoCode": "3FCC6",
+    "reward": 100,
+    "status": true
+  },
+  {
+    "promoCode": "266A7",
+    "reward": 150,
+    "status": true
+  },
+  {
+    "promoCode": "C34B9",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "6FDC3",
+    "reward": 250,
+    "status": true
+  },
+  {
+    "promoCode": "C6955",
+    "reward": 300,
+    "status": true
+  },
+  {
+    "promoCode": "9D5C2",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "E111E",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "9751B",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "0F3B5",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "F5418",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "2865A",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "A5770",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "95307",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "8316D",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "3656A",
+    "reward": 200,
+    "status": true
+  },
+  {
+    "promoCode": "A0CB6",
+    "reward": 250,
+    "status": true
+  },
+  {
+    "promoCode": "12E3C",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "41986",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "7CECE",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "3DBBF",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "AF1AF",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "FD195",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "B7E1A",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "0185E",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "24E87",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "1A066",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "92931",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "48055",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "AB98A",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "CD232",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "8B931",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "50381",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "E9216",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "53CB9",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "1DAE5",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "C8CC8",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "7BCDF",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "F5FDB",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "BC7F2",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "DD1E8",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "57DD6",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "FECC2",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "CCFDA",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "87210",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "A2423",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "DE3FE",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "5C833",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "44767",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "5E07A",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "D43A2",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "89EE4",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "612EE",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "6F268",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "65753",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "AC2AF",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "F2132",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "5C1F1",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "B2DB6",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "BD093",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "B2221",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "5EC03",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "2E679",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "2B9D6",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "C015A",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "CF9EC",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "CB525",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "1D6B1",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "08A0B",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "38D27",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "54EEF",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "3B558",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "69878",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "C2983",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "4A78D",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "CEF18",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "E7217",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "70517",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "0CF0C",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "695F9",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "D7450",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "4260D",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "63AB4",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "D1C2F",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "A0354",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "65F6B",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "FA0B0",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "37F1C",
+    "reward": 200,
+    "status": false
+  },
+  {
+    "promoCode": "BA397",
+    "reward": 250,
+    "status": false
+  },
+  {
+    "promoCode": "9932D",
+    "reward": 300,
+    "status": false
+  },
+  {
+    "promoCode": "C21B4",
+    "reward": 50,
+    "status": false
+  },
+  {
+    "promoCode": "E4B32",
+    "reward": 100,
+    "status": false
+  },
+  {
+    "promoCode": "C3D13",
+    "reward": 150,
+    "status": false
+  },
+  {
+    "promoCode": "4C8C2",
+    "reward": 200,
+    "status": false
+  }
+]

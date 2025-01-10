@@ -12,7 +12,9 @@ require('dotenv').config()
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token,{polling: true})
+  // const bot = new TelegramBot(token,{polling: true})
+  const bot = new TelegramBot(token)
+
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
@@ -49,8 +51,12 @@ if (cluster.isMaster) {
   const app = express()
 
   //**************************** */
-  const { encryptMessage, decryptMessage } = require('./src/helpers/crypto');
-  const testPayload = { name: "Danica", telegramId: "Danica" };
+  const { encryptMessage } = require('./src/helpers/crypto');
+  const testPayload = { 
+    "name":"user2",
+    "telegramId" : "user2",
+  
+     };
   const { encryptedData, ivString } = encryptMessage(JSON.stringify(testPayload));
   console.log("Encrypted Data:>>>>>>>>>", encryptedData);
   console.log("IV String:>>>>>>>>>>>", ivString);

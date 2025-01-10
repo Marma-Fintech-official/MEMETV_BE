@@ -23,6 +23,10 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 500
     },
+     promoRewards : {
+        type : Number,
+        default : 0
+     },
     levelUpRewards: {
       type: Number,
       default: 500
