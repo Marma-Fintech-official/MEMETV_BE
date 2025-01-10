@@ -4,7 +4,7 @@ const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
 const {decryptedDatas} = require('../helpers/Decrypt');
-const startDate = new Date('2024-12-03') // Project start date
+const startDate = new Date('2025-01-09') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
   const oneDay = 24 * 60 * 60 * 1000;
@@ -684,13 +684,22 @@ const dailyRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid currentPhase' });
     }
 
+      // Retrieve the user's balanceRewards from the User model
+      const user = await User.findOne({ telegramId });
+      if (!user) {
+        logger.warn(`User not found for telegramId: ${telegramId}`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const { balanceRewards: totalRewards } = user;
+
     // Check if telegramId exists in userDailyreward collection
     const userExists = await userDailyreward.exists({ telegramId });
     if (!userExists) {
       logger.warn(`No records found for telegramId: ${telegramId}`);
       return res.status(200).json({
         dailyRewards: [],
-        totalPhaseRewards: 0,
+        totalRewards,
         message: `No rewards found for telegramId: ${telegramId}`,
       });
     }
@@ -733,7 +742,6 @@ const dailyRewards = async (req, res, next) => {
         // Use existing record
         const reward = recordsByDate[dateKey];
         const stakeButton = today > new Date(reward.createdAt) ? 'enable' : 'disable';
-        totalPhaseRewards += reward.dailyEarnedRewards || 0;
         return { ...reward.toObject(), stakeButton };
       } else {
         // Add default record
@@ -749,7 +757,7 @@ const dailyRewards = async (req, res, next) => {
     // Return the response
     return res.status(200).json({
       dailyRewards: processedRewards,
-      totalPhaseRewards,
+      totalRewards,
     });
   } catch (err) {
     logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);

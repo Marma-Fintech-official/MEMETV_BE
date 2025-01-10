@@ -10,7 +10,6 @@ const TelegramBot = require('node-telegram-bot-api')
 const logger = require('./src/helpers/logger') // Import the custom logger
 require('dotenv').config()
 const rateLimit = require('express-rate-limit')
-// const { encryptMessage } = require('./src/helpers/crypto')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
   const bot = new TelegramBot(token, { polling: true })
@@ -22,7 +21,7 @@ if (cluster.isMaster) {
     logger.info(`Received start command with referredId: ${referredId}`)
     bot.sendMessage(
       chatId,
-      'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points. Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
+      'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points, Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
       {
         reply_markup: {
           inline_keyboard: [
@@ -30,7 +29,7 @@ if (cluster.isMaster) {
               {
                 text: '#doNothing',
                 web_app: {
-                  url: `https://joyful-frangollo-2fafea.netlify.app/?start=${referredId}`
+                  url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
                 }
               }
             ]
@@ -48,13 +47,6 @@ if (cluster.isMaster) {
   }
 
   const app = express()
-  //     const  {encryptedData,ivString } = encryptMessage(JSON.stringify({
-  //       "telegramId": "5794983263",
-  //       "gamePoints": "2000",
-  //       "boosters": ["2x", "2x", "3x", "3x"]
-  // }));
-  //   console.log("encryptedData",encryptedData);
-  //   console.log("ivString",ivString);
 
   // Connect to MongoDB
   mongoose
