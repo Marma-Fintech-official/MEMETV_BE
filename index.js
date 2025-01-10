@@ -56,7 +56,7 @@ if (cluster.isMaster) {
     })
     .then(() => {
       logger.info(
-        '*********🛡️ 🔍  Successfully Connected to MongoDB 🛡️ 🔍 **********'
+        '*********🛡️ 🔍  Successfully Connected to MongoDB for Stagging 🛡️ 🔍 **********'
       )
     })
     .catch(err => {
