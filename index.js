@@ -10,7 +10,6 @@ const TelegramBot = require('node-telegram-bot-api')
 const logger = require('./src/helpers/logger') // Import the custom logger
 require('dotenv').config()
 const rateLimit = require('express-rate-limit')
-// const { encryptMessage } = require('./src/helpers/crypto')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
   const bot = new TelegramBot(token, { polling: true })
@@ -48,13 +47,6 @@ if (cluster.isMaster) {
   }
 
   const app = express()
-  //     const  {encryptedData,ivString } = encryptMessage(JSON.stringify({
-  //       "telegramId": "5794983263",
-  //       "gamePoints": "2000",
-  //       "boosters": ["2x", "2x", "3x", "3x"]
-  // }));
-  //   console.log("encryptedData",encryptedData);
-  //   console.log("ivString",ivString);
 
   // Connect to MongoDB
   mongoose
