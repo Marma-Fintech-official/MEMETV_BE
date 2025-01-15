@@ -27,7 +27,7 @@ const savePromoCodesToFile = (filename, promoCodes) => {
 };
 
 // Parameters
-const numberOfPromoCodes = 100;
+const numberOfPromoCodes = 10000;
 const rewards = [50, 100, 150, 200, 250, 300]; // Define your rewards here
 
 // Generate, format, and save promo codes
