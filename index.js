@@ -53,8 +53,9 @@ if (cluster.isMaster) {
   //**************************** */
   const { encryptMessage } = require('./src/helpers/crypto');
   const testPayload = { 
-    "name":"user2",
-    "telegramId" : "user2",
+    "telegramId" : "user2",  
+    "boosters" : "3x", 
+    "gamePoints" : 100
   
      };
   const { encryptedData, ivString } = encryptMessage(JSON.stringify(testPayload));
