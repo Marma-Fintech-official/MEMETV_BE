@@ -20,7 +20,6 @@ const formatPromoCodes = (promoCodes, rewards) => {
   }));
 };
 
-// Save promo codes to a file
 const savePromoCodesToFile = (filename, promoCodes) => {
   fs.writeFileSync(filename, JSON.stringify(promoCodes, null, 2));
   console.log(`${promoCodes.length} promo codes saved to ${filename}`);
