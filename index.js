@@ -19,24 +19,35 @@ if (cluster.isMaster) {
     const chatId = msg.chat.id
     const referredId = match[1]
     logger.info(`Received start command with referredId: ${referredId}`)
-    bot.sendMessage(
-      chatId,
-      'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points, Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: '#doNothing',
-                web_app: {
-                  url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
+
+    bot
+      .sendMessage(
+        chatId,
+        'Hello! Welcome to The Meme TV: Watch videos, play games, invite friends, and earn points, Boost rewards and stake your way to even more fun! Join now and turn your meme experience into something truly rewarding!',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '#doNothing',
+                  web_app: {
+                    url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
+                  }
                 }
-              }
+              ],
+              [
+                {
+                  text: 'Subscribe to the Channel',
+                  url: 'https://t.me/thememetvcommunity' // Use the `url` property for links to external sites
+                }
+              ]
             ]
-          ]
+          }
         }
-      }
-    )
+      )
+      .catch(error => {
+        logger.error(`Failed to send start message: ${error.message}`)
+      })
   })
 
   const numCPUs = os.cpus().length
