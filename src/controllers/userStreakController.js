@@ -716,9 +716,14 @@ const streak = async (req, res, next) => {
   } catch (err) {
     const telegramId = req.body?.telegramId || 'unknown'
     logger.error(
-      `Error while updating streak rewards for telegramId: ${telegramId}. Error: ${err.message}`
+      `Error while claiming Login Streak Reward for telegramId: ${telegramId}. Error: ${err.message}`
     )
-    next(err)
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
+    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
+    next(err);
   }
 }
 
