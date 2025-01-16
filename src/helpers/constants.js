@@ -131,7 +131,6 @@ module.exports = {
   levelUpBonuses,
   thresholds,
   milestones,
-  TOTALREWARDS_LIMIT,
   loginStreakReward,
   watchStreakReward,
   referStreakReward,
