@@ -11,7 +11,7 @@ const {
 } = require('../helpers/constants')
 const {decryptedDatas} = require('../helpers/Decrypt');
 
-const TOTALREWARDS_LIMIT = 21000000000
+const TOTALREWARDS_LIMIT = 21000000000;
 
 // Function to generate a 5-character alphanumeric identifier
 const generateRefId = () => {

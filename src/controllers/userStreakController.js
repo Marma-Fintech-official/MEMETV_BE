@@ -726,6 +726,9 @@ const streak = async (req, res, next) => {
     logger.error(
       `Error while updating streak rewards for telegramId: ${telegramId}. Error: ${err.message}`
     )
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
     next(err)
   }
 }
@@ -939,6 +942,9 @@ const streakOfStreak = async (req, res, next) => {
     logger.error(
       `Error while updating Streak of Streak rewards for telegramId: ${telegramId}. Error: ${err.message}`
     )
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
     next(err)
   }
 }
@@ -1143,6 +1149,9 @@ const watchStreakRewardClaim = async (req, res, next) => {
     logger.error(
       `Error while claiming Watch Streak Reward for telegramId: ${telegramId}, index: ${index}. Error: ${err.message}`
     )
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
     next(err)
   }
 }
@@ -1916,16 +1925,17 @@ const userStreaks = async (req, res, next) => {
 
     // Return the user streak details in the response
     return res.status(200).json(user.streak)
-  } catch (error) {
+  } catch (err) {
     // Log the error
     logger.error(
-      `An error occurred while fetching streak details for telegramId: ${telegramId}. Error: ${error.message}`
+      `An error occurred while fetching streak details for telegramId: ${telegramId}. Error: ${err.message}`
     )
 
     // Handle any errors that occur
-    return res
-      .status(500)
-      .json({ message: 'An error occurred', error: error.message })
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+    next(err)
   }
 }
 
