@@ -30,6 +30,10 @@ if (cluster.isMaster) {
                 text: '#doNothing',
                 web_app: {
                   url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
+                },
+                text: 'Subscribe to the channel',
+                web_app: {
+                   url: `https://t.me/thememetvcommunity`
                 }
               }
             ]
