@@ -400,7 +400,7 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = decryptedDatas(req);
+    const { telegramId,  boosters, gamePoints} = decryptedDatas(req);
 
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"

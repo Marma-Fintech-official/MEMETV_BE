@@ -12,11 +12,12 @@ const {
   setCurrentDay,
   updateClaimedDayArray,
   distributionStartDate,
-} = require('../helpers/constants')
+} = require('../helpers/constants');
 const {decryptedDatas} = require('../helpers/Decrypt');
-const UserDailyReward = require('../models/userDailyrewardsModel') // Import the model
+const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
 require('dotenv').config()
 const TOTALREWARDS_LIMIT = 21000000000;
+const TOTALREWARDS_LIMIT = process.env.OVERALL_REWARD_LIMIT;
 
 const saveStreakReward = async (user, rewardPoints) => {
   try {
@@ -306,9 +307,7 @@ const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
     user.streak.loginStreak.loginStreakReward[
       user.streak.loginStreak.loginStreakCount - 1
     ] = rewardAmount
-    // for(i=0 ;i<user.streak.loginStreak.loginStreakCount;i++){
-    //   user.boosters.push({type: "3x", count: 1});
-    // }
+    
     updateBoosterForStreak(user, '3', user.streak.loginStreak.loginStreakCount)
 
     return true
@@ -536,9 +535,6 @@ const calculateReferStreak = async (user, todaysLogin, differenceInDays) => {
       user.streak.referStreak.referStreakReward[
         user.streak.referStreak.referStreakCount - 1
       ] = rewardAmount
-      // for(i=0 ;i<user.streak.referStreak.referStreakCount;i++){
-      //   user.boosters.push({type: "3x", count: 1});
-      // }
 
       updateBoosterForStreak(
         user,
@@ -640,9 +636,6 @@ const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
     user.streak.taskStreak.taskStreakReward[
       user.streak.taskStreak.taskStreakCount - 1
     ] = rewardAmount
-    // for(i=0 ;i<user.streak.taskStreak.taskStreakCount;i++){
-    //   user.boosters.push({type: "3x", count: 1});
-    // }
     updateBoosterForStreak(user, '3', user.streak.taskStreak.taskStreakCount)
     return true
   } else {
@@ -801,9 +794,6 @@ const calculateMultiStreak = async (user, todaysLogin, differenceInDays) => {
         user.streak.multiStreak.streakOfStreakCount++
         user.streak.multiStreak.multiStreakDate = new Date()
       }
-      // for(i=0 ;i<user.streak.multiStreak.multiStreakCount;i++){
-      //   user.boosters.push({type: "5x", count: 1});
-      // }
       updateBoosterForStreak(
         user,
         '5',
@@ -1397,11 +1387,8 @@ const multiStreakRewardClaim = async (req, res, next) => {
           message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`
         })
       }
-
-      // Determine how much reward can be claimed
       const allowedPoints = Math.min(rewardAmount, availableSpace)
 
-      // Add to total rewards and streak rewards of the user
       user.totalRewards += allowedPoints
       user.streakRewards += allowedPoints
       user.balanceRewards += allowedPoints
@@ -1619,7 +1606,6 @@ const updateClaimedLoginDaysArray = async (req, res, next) => {
     // Log the incoming request
     logger.info(`Updating claimedLoginDays array for telegramId: ${telegramId}`)
 
-    // Find the user by telegramId
     const user = await User.findOne({ telegramId })
     if (!user) {
       logger.warn(`User not found for telegramId: ${telegramId}`)
@@ -1677,7 +1663,6 @@ const updateClaimedWatchDaysArray = async (req, res, next) => {
     // Log the incoming request
     logger.info(`Updating claimedWatchDays array for telegramId: ${telegramId}`)
 
-    // Find the user by telegramId
     const user = await User.findOne({ telegramId })
     if (!user) {
       logger.warn(`User not found for telegramId: ${telegramId}`)
@@ -1701,13 +1686,11 @@ const updateClaimedWatchDaysArray = async (req, res, next) => {
       `claimedWatchDays array updated successfully for telegramId: ${telegramId}`
     )
 
-    // Send success response
     res.status(200).json({
       message: 'claimedWatchDays array updated successfully',
       claimedWatchDays: user.streak.claimedWatchDays
     })
   } catch (err) {
-    // Log the error
     logger.error(
       `An error occurred while updating claimedWatchDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
@@ -1734,7 +1717,6 @@ const updateClaimedReferDaysArray = async (req, res, next) => {
     // Log the incoming request
     logger.info(`Updating claimedReferDays array for telegramId: ${telegramId}`)
 
-    // Find the user by telegramId
     const user = await User.findOne({ telegramId })
     if (!user) {
       logger.warn(`User not found for telegramId: ${telegramId}`)
@@ -1758,13 +1740,11 @@ const updateClaimedReferDaysArray = async (req, res, next) => {
       `claimedReferDays array updated successfully for telegramId: ${telegramId}`
     )
 
-    // Send success response
     res.status(200).json({
       message: 'claimedReferDays array updated successfully',
       claimedReferDays: user.streak.claimedReferDays
     })
   } catch (err) {
-    // Log the error
     logger.error(
       `An error occurred while updating claimedReferDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
@@ -1788,10 +1768,8 @@ const updateClaimedTaskDaysArray = async (req, res, next) => {
 
     const { telegramId, claimedDayArray } = decryptedData
 
-    // Log the incoming request
     logger.info(`Updating claimedTaskDays array for telegramId: ${telegramId}`)
 
-    // Find the user by telegramId
     const user = await User.findOne({ telegramId })
     if (!user) {
       logger.warn(`User not found for telegramId: ${telegramId}`)
@@ -1807,7 +1785,6 @@ const updateClaimedTaskDaysArray = async (req, res, next) => {
     // Update the claimedTaskDays array
     user.streak.claimedTaskDays = claimedDayArray
 
-    // Save the updated user document
     await user.save()
 
     // Log the successful update
@@ -1815,13 +1792,11 @@ const updateClaimedTaskDaysArray = async (req, res, next) => {
       `claimedTaskDays array updated successfully for telegramId: ${telegramId}`
     )
 
-    // Send success response
     res.status(200).json({
       message: 'claimedTaskDays array updated successfully',
       claimedTaskDays: user.streak.claimedTaskDays
     })
   } catch (err) {
-    // Log the error
     logger.error(
       `An error occurred while updating claimedTaskDays array for telegramId: ${telegramId}. Error: ${err.message}`
     )
@@ -1848,7 +1823,6 @@ const updateClaimedMultiDaysArray = async (req, res, next) => {
     // Log the incoming request
     logger.info(`Updating claimedMultiDays array for telegramId: ${telegramId}`)
 
-    // Find the user by telegramId
     const user = await User.findOne({ telegramId })
     if (!user) {
       logger.warn(`User not found for telegramId: ${telegramId}`)
@@ -1864,15 +1838,12 @@ const updateClaimedMultiDaysArray = async (req, res, next) => {
     // Update the claimedMultiDays array
     user.streak.claimedMultiDays = claimedDayArray
 
-    // Save the updated user document
     await user.save()
 
-    // Log the successful update
     logger.info(
       `claimedMultiDays array updated successfully for telegramId: ${telegramId}`
     )
 
-    // Send success response
     res.status(200).json({
       message: 'claimedMultiDays array updated successfully',
       claimedMultiDays: user.streak.claimedMultiDays
@@ -1922,7 +1893,6 @@ const userStreaks = async (req, res, next) => {
       `An error occurred while fetching streak details for telegramId: ${telegramId}. Error: ${error.message}`
     )
 
-    // Handle any errors that occur
     return res
       .status(500)
       .json({ message: 'An error occurred', error: error.message })
