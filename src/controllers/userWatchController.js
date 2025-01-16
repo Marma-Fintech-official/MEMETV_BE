@@ -13,7 +13,7 @@ const calculatePhase = (currentDate, startDate) => {
   return Math.ceil(daysDifference / 7);
 }
 
-const TOTALREWARDS_LIMIT = 21000000000
+const TOTALREWARDS_LIMIT = 21000000000;
 
 const updateUserDailyReward = async (
   userId,
