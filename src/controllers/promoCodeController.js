@@ -5,7 +5,7 @@ const UserReward = require("../models/userRewardModel");
 const logger = require("../helpers/logger");
 require("dotenv").config();
 
-const TOTALREWARDS_LIMIT = process.env.OVERALL_REWARD_LIMIT;
+const TOTALREWARDS_LIMIT = 21000000000;
 
 // Update or create daily earned rewards
 const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
