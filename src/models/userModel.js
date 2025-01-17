@@ -79,6 +79,10 @@ const userSchema = mongoose.Schema(
         default: false
       }
     },
+    earlyEarnedRewards: {
+      type: Number,
+      default: 0
+    },
     referredById: {
       type: String,
       default: ''
