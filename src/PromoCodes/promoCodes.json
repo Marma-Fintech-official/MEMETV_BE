@@ -7498,5 +7498,103 @@
     "promoCode": "342FE",
     "reward": 10000,
     "status": false
+  },
+  {
+    "promoCode": "324FE",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "324EF",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "423EF",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "445EG",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "675YU",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "123FE",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "190EF",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "618TF",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "619OP",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "321YF",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "311FE",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "876JF",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "553KP",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "445KK",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "123KS",
+    "reward": 50000,
+    "status": false
+  },
+  {
+    "promoCode": "143MF",
+    "reward": 100000,
+    "status": false
+  },
+  {
+    "promoCode": "431PA",
+    "reward": 100000,
+    "status": false
+  },
+  {
+    "promoCode": "253KA",
+    "reward": 100000,
+    "status": false
+  },  {
+    "promoCode": "173MA",
+    "reward": 100000,
+    "status": false
+  },  {
+    "promoCode": "100PO",
+    "reward": 100000,
+    "status": false
   }
 ]
