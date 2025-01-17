@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose')
 
 const userSchema = mongoose.Schema(
@@ -6,7 +5,7 @@ const userSchema = mongoose.Schema(
     name: {
       type: String,
       trim: true,
-      required: true,
+      required: true
     },
     telegramId: {
       type: String,
@@ -23,10 +22,10 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 500
     },
-     promoRewards : {
-        type : Number,
-        default : 0
-     },
+    promoRewards: {
+      type: Number,
+      default: 0
+    },
     levelUpRewards: {
       type: Number,
       default: 500
@@ -90,13 +89,13 @@ const userSchema = mongoose.Schema(
     boosters: [
       {
         type: {
-          type: String, // Booster type, e.g., '2x', '3x'
+          type: String // Booster type, e.g., '2x', '3x'
         },
         count: {
           type: Number, // Number of times this booster is available
-          default: '',
-        },
-      },
+          default: ''
+        }
+      }
     ],
     level: {
       type: Number,
@@ -107,7 +106,7 @@ const userSchema = mongoose.Schema(
       {
         userId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Users',
+          ref: 'Users'
         },
         createdAt: {
           type: Date,
@@ -267,7 +266,7 @@ const userSchema = mongoose.Schema(
         type: Number,
         default: 0
       }
-    },
+    }
   },
   {
     timestamps: true
@@ -277,4 +276,3 @@ const userSchema = mongoose.Schema(
 const User = mongoose.model('User', userSchema)
 
 module.exports = User
-
