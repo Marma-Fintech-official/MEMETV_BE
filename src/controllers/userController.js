@@ -1096,5 +1096,6 @@ module.exports = {
   userTaskRewards,
   purchaseBooster,
   purchaseGameCards,
-  stakingRewards
+  stakingRewards,
+  updateLevel
 }

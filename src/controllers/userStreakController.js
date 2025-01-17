@@ -15,6 +15,7 @@ const {
 } = require('../helpers/constants');
 const {decryptedDatas} = require('../helpers/Decrypt');
 const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
+const { updateLevel } = require('../controllers/userController');
 require('dotenv').config()
 const TOTALREWARDS_LIMIT = 21000000000;
 
@@ -1003,12 +1004,14 @@ const loginStreakRewardClaim = async (req, res, next) => {
         user.streak.claimedLoginDays[index + (startDay - 1)] = true
       }
 
+      await updateLevel(user);
       await user.save()
 
       // Save reward record and update daily rewards
       await saveStreakReward(user, allowedPoints)
-      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
+      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
 
+      
       logger.info(
         `Login Streak Reward claimed successfully for telegramId: ${telegramId}`
       )
@@ -1106,11 +1109,13 @@ const watchStreakRewardClaim = async (req, res, next) => {
         const startDay = user.streak.startDay
         user.streak.claimedWatchDays[index + (startDay - 1)] = true
       }
-
+      
+      await updateLevel(user);
       await user.save()
       // Save the reward record
       await saveStreakReward(user, allowedPoints)
-      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
+      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
+
 
       logger.info(
         `Watch Streak Reward claimed successfully for telegramId: ${telegramId}`
@@ -1207,12 +1212,13 @@ const referStreakRewardClaim = async (req, res, next) => {
         user.streak.claimedReferDays[index + (startDay - 1)] = true
       }
 
+      await updateLevel(user);
       // Save the user record
       await user.save()
 
       // Save reward record and update daily rewards
       await saveStreakReward(user, allowedPoints)
-      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
+      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
 
       logger.info(
         `Refer Streak Reward claimed successfully for telegramId: ${telegramId}`
@@ -1309,10 +1315,11 @@ const taskStreakRewardClaim = async (req, res, next) => {
         user.streak.claimedTaskDays[index + (startDay - 1)] = true
       }
 
+      await updateLevel(user);
       await user.save()
       // Save the reward record
       await saveStreakReward(user, rewardAmount)
-      await updateDailyEarnedRewards(user._id, telegramId, rewardAmount)
+      await updateDailyEarnedRewards(user._id, telegramId, rewardAmount);
 
       logger.info(
         `Task Streak Reward claimed successfully for telegramId: ${telegramId}`
@@ -1412,7 +1419,8 @@ const multiStreakRewardClaim = async (req, res, next) => {
       await user.save()
       // Save the reward record
       await saveStreakReward(user, allowedPoints)
-      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
+      await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
+      await updateLevel(user);
 
       logger.info(
         `Multi Streak Reward claimed successfully for telegramId: ${telegramId}`
@@ -1511,11 +1519,12 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
     // Update the last SOS reward value
     user.streak.multiStreak.lastSOSReward = allowedPoints
 
+    await updateLevel(user);
     await user.save()
 
     // Save the reward record
     await saveStreakReward(user, allowedPoints)
-    await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
+    await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
 
     logger.info(
       `Streak of Streak Rewards claimed successfully for telegramId: ${telegramId}`

@@ -4,8 +4,9 @@ const UserDailyReward = require('../models/userDailyrewardsModel')
 const UserReward = require('../models/userRewardModel')
 const logger = require('../helpers/logger')
 require('dotenv').config()
-const { decryptedDatas } = require('../helpers/Decrypt')
-const TOTALREWARDS_LIMIT = 21000000000
+const { decryptedDatas } = require('../helpers/Decrypt');
+const {updateLevel} = require('./userController');
+const TOTALREWARDS_LIMIT = 21000000000;
 
 // Update or create daily earned rewards
 const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
@@ -144,6 +145,8 @@ const validatePromocode = async (req, res) => {
     user.usedPromoCodes.push(promoCode)
 
     // Update daily earned rewards
+    await updateLevel(user);
+    await user.save();
     await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
     await savePromoReward(user, allowedPoints)
 
@@ -155,7 +158,7 @@ const validatePromocode = async (req, res) => {
     )
 
     // Save the updated user
-    await user.save()
+    // await user.save()
 
     return res.status(200).json({
       message: 'Promo code validated and reward added.',
