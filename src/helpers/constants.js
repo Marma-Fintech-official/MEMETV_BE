@@ -40,7 +40,6 @@ const milestones = [
   { referrals: 50, reward: 333333 }
 ]
 
-// streak calculations
 const loginStreakReward = [100, 200, 400, 800, 1600, 3200, 6400];
 const watchStreakReward = [100, 200, 400, 800, 1600, 3200, 6400];
 const referStreakReward = [1000, 1500, 3000, 6000, 12000, 24000, 48000];
@@ -142,4 +141,5 @@ module.exports = {
   setCurrentDay,
   updateClaimedDayArray,
   distributionStartDate
+  
 }

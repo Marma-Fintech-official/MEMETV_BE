@@ -5,5 +5,6 @@ const router = express.Router()
 router.use('/', require('./userRoute'))
 router.use('/', require('./userWatchRoute'))
 router.use('/', require('./userStreakRoute'))
+router.use('/', require('./promoCodeRoute'))
 
 module.exports = router

@@ -9,7 +9,7 @@ const {
   thresholds,
   milestones
 } = require('../helpers/constants')
-const {decryptedDatas} = require('../helpers/Decrypt');
+const { decryptedDatas } = require('../helpers/Decrypt')
 
 const TOTALREWARDS_LIMIT = 21000000000;
 
@@ -106,7 +106,7 @@ const updateLevel = async (user, isFromStaking = false) => {
 
 const login = async (req, res, next) => {
   try {
-    let { name, referredById, telegramId } = decryptedDatas(req);
+    let { name, referredById, telegramId } = decryptedDatas(req)
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -183,7 +183,7 @@ const login = async (req, res, next) => {
 
         referringUser.refferalIds.push({ userId: user._id })
 
-        const referralReward = 10000// Fixed reward for referring a user
+        const referralReward = 10000 // Fixed reward for referring a user
         const numberOfReferrals = referringUser.refferalIds.length
 
         let milestoneReward = 0
@@ -338,22 +338,22 @@ const login = async (req, res, next) => {
       }
     } else {
       // Existing user login logic
-      const lastLoginDate = new Date(user.lastLogin);
+      const lastLoginDate = new Date(user.lastLogin)
 
       if (lastLoginDate < today) {
         // Add a level-up booster only once per day
         const levelUpBooster = user.boosters.find(
-          (booster) => booster.type === 'levelUp'
-        );
+          booster => booster.type === 'levelUp'
+        )
 
         if (levelUpBooster) {
-          levelUpBooster.count += 1;
+          levelUpBooster.count += 1
         } else {
-          user.boosters.push({ type: 'levelUp', count: 1 });
+          user.boosters.push({ type: 'levelUp', count: 1 })
         }
 
-        user.lastLogin = currentDate;
-        await user.save();
+        user.lastLogin = currentDate
+        await user.save()
       }
     }
 
@@ -386,21 +386,21 @@ const login = async (req, res, next) => {
   } catch (err) {
     logger.error(
       `Error processing login for telegramId: ${req.body.telegramId} - ${err.message}`
-    );
-  
+    )
+
     // Respond with a generic message
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = decryptedDatas(req);
+    const { telegramId, boosters, gamePoints } = decryptedDatas(req)
 
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
@@ -577,16 +577,16 @@ const userGameRewards = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const userTaskRewards = async (req, res, next) => {
   try {
-    const { telegramId, taskPoints, channel } = decryptedDatas(req);
+    const { telegramId, taskPoints, channel } = decryptedDatas(req)
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`
@@ -751,16 +751,17 @@ const userTaskRewards = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const purchaseBooster = async (req, res, next) => {
   try {
-    const { telegramId, boosterPoints, booster, boosterCount } = decryptedDatas(req);
+    const { telegramId, boosterPoints, booster, boosterCount } =
+      decryptedDatas(req)
 
     logger.info(
       `Received request to purchase booster for telegramId: ${telegramId}`
@@ -881,16 +882,16 @@ const purchaseBooster = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const purchaseGameCards = async (req, res, next) => {
   try {
-    const { telegramId, gamePoints } = decryptedDatas(req);
+    const { telegramId, gamePoints } = decryptedDatas(req)
 
     // Get the current date and time
     const now = new Date()
@@ -1000,16 +1001,16 @@ const purchaseGameCards = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const stakingRewards = async (req, res, next) => {
   try {
-    const { stakingId } = decryptedDatas(req);
+    const { stakingId } = decryptedDatas(req)
     // Validate stakingId
     if (!isValidObjectId(stakingId)) {
       logger.warn(`Invalid stakingId format: ${stakingId}`)
@@ -1082,13 +1083,12 @@ const stakingRewards = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
-
 
 module.exports = {
   login,
