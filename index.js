@@ -90,6 +90,11 @@ if (cluster.isMaster) {
     res.send(' ***🔥🔥 TheMemeTv Backend Server is Running 🔥🔥*** ')
   })
 
+  app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+  });
+  
+
   // Rate limiter
   const limiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
