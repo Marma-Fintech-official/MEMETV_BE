@@ -12,7 +12,7 @@ require('dotenv').config()
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token,{polling: true})
+  const bot = new TelegramBot(token, { polling: true })
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
@@ -87,13 +87,8 @@ if (cluster.isMaster) {
   app.use(router)
 
   app.get('/', (req, res) => {
-    res.send(' ***🔥🔥 TheMemeTv Backend Server  is Running 🔥🔥*** ')
+    res.send(' ***🔥🔥 TheMemeTv Backend Server is Running 🔥🔥*** ')
   })
-
-  app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-  });
-  
 
   // Rate limiter
   const limiter = rateLimit({
