@@ -4,8 +4,8 @@ const UserDailyReward = require("../models/userDailyrewardsModel");
 const UserReward = require("../models/userRewardModel");
 const logger = require("../helpers/logger");
 require("dotenv").config();
-
-const TOTALREWARDS_LIMIT = process.env.OVERALL_REWARD_LIMIT;
+const {decryptedDatas} = require('../helpers/Decrypt');
+const TOTALREWARDS_LIMIT = 21000000000;
 
 // Update or create daily earned rewards
 const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
@@ -49,26 +49,45 @@ const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
 
 const savePromoReward = async (user, rewardPoints) => {
   try {
-    const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0]; // Today's date in YYYY-MM-DD
 
-    // Create a new reward document for every redemption
-    const rewardRecord = new UserReward({
-      category: "promo", // Category as promo
-      date: new Date(today), // Set today's date
-      rewardPoints: rewardPoints, // Set reward points
-      userId: user._id, // Set userId
-      telegramId: user.telegramId, // Set telegramId
+    // Check if a reward record already exists for today
+    let rewardRecord = await UserReward.findOne({
+      userId: user._id,
+      telegramId: user.telegramId,
+      category: "promo",
+      date: new Date(today),
     });
 
-    // Save the new reward record
-    await rewardRecord.save();
-    console.log(
-      `New reward record created for user ${user.telegramId} with ${rewardPoints} points.`
-    );
+    if (rewardRecord) {
+      // If record exists, increment rewardPoints
+      rewardRecord.rewardPoints += rewardPoints;
+      rewardRecord.updatedAt = new Date();
+      await rewardRecord.save();
+
+      console.log(
+        `Updated today's promo reward for user ${user.telegramId}. Total: ${rewardRecord.rewardPoints}`
+      );
+    } else {
+      // If no record exists, create a new one
+      rewardRecord = new UserReward({
+        category: "promo",
+        date: new Date(today),
+        rewardPoints: rewardPoints,
+        userId: user._id,
+        telegramId: user.telegramId,
+      });
+      await rewardRecord.save();
+
+      console.log(
+        `Created new promo reward record for user ${user.telegramId} with ${rewardPoints} points.`
+      );
+    }
   } catch (error) {
     console.error(`Error saving promo reward: ${error.message}`);
   }
 };
+
 
 // Load promo codes from file
 const promoCodes = JSON.parse(
@@ -76,7 +95,8 @@ const promoCodes = JSON.parse(
 );
 
 const validatePromocode = async (req, res) => {
-  const { telegramId, promoCode } = req.body;
+  const { telegramId, promoCode } = decryptedDatas(req);
+  console.log(telegramId, promoCode);
 
   if (!telegramId || !promoCode) {
     return res

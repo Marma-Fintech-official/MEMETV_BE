@@ -12,7 +12,6 @@ require('dotenv').config()
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  // const bot = new TelegramBot(token,{polling: true})
   const bot = new TelegramBot(token)
 
 
@@ -49,19 +48,6 @@ if (cluster.isMaster) {
   }
 
   const app = express()
-
-  //**************************** */
-  const { encryptMessage } = require('./src/helpers/crypto');
-  const testPayload = { 
-    "telegramId" : "user2",  
-    "boosters" : "3x", 
-    "gamePoints" : 100
-  
-     };
-  const { encryptedData, ivString } = encryptMessage(JSON.stringify(testPayload));
-  console.log("Encrypted Data:>>>>>>>>>", encryptedData);
-  console.log("IV String:>>>>>>>>>>>", ivString);
-  //********************************* */
 
   // Connect to MongoDB
   mongoose
