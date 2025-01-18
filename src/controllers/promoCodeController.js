@@ -180,4 +180,5 @@ const validatePromocode = async (req, res) => {
   }
 }
 
+
 module.exports = { validatePromocode }
