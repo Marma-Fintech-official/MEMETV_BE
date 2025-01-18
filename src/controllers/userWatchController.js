@@ -15,6 +15,7 @@ const calculatePhase = (currentDate, startDate) => {
 
 const TOTALREWARDS_LIMIT = 21000000000;
 
+
 const updateUserDailyReward = async (
   userId,
   telegramId,
