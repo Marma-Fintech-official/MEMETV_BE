@@ -6,7 +6,7 @@ const logger = require('../helpers/logger')
 require('dotenv').config()
 const { decryptedDatas } = require('../helpers/Decrypt');
 const {updateLevel} = require('./userController');
-const TOTALREWARDS_LIMIT = 8000;
+const TOTALREWARDS_LIMIT = 21000000000;
 
 // Update or create daily earned rewards
 const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
@@ -179,11 +179,10 @@ const validatePromocode = async (req, res) => {
     next(err)``
   }
 }
-const yearlyEarnedreward = async (req, res, next) => {
-  const { telegramId, yearlyearnedReward } = req.body;
-  console.log(telegramId, yearlyearnedReward);
+const earlyEarnedreward = async (req, res, next) => {
+  const { telegramId, earlyearnedReward } = decryptedDatas(req);
 
-  if (!telegramId || !yearlyearnedReward) {
+  if (!telegramId || !earlyearnedReward) {
     return res
       .status(400)
       .json({ message: 'Telegram ID and reward amount are required.' });
@@ -212,7 +211,7 @@ const yearlyEarnedreward = async (req, res, next) => {
     }
 
     // Calculate the points user can claim without exceeding limits
-    const allowedPoints = Math.min(yearlyearnedReward, availableSpace);
+    const allowedPoints = Math.min(earlyearnedReward, availableSpace);
 
     user.earlyEarnedRewards += allowedPoints;
     user.balanceRewards += allowedPoints;
@@ -227,7 +226,7 @@ const yearlyEarnedreward = async (req, res, next) => {
       message: 'early earned reward added successfully.',
       balanceRewards: user.balanceRewards,
       totalRewards: user.totalRewards,
-      yearlyEarnedRewards: yearlyearnedReward,
+      earlyEarnedRewards: earlyearnedReward,
       claimedreward : allowedPoints
     });
   } catch (err) {
@@ -244,4 +243,4 @@ const yearlyEarnedreward = async (req, res, next) => {
 }
 
 
-module.exports = { validatePromocode, yearlyEarnedreward }
+module.exports = { validatePromocode, earlyEarnedreward }
