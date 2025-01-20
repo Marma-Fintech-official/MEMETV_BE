@@ -95,7 +95,15 @@ if (cluster.isMaster) {
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 1000 // Limit each IP to 1000 requests per window
   })
-  app.use(limiter)
+  app.use(limiter);
+
+const { encryptMessage } = require('./src/helpers/crypto')
+const {encryptedData,ivString } = encryptMessage(JSON.stringify({
+       "telegramId": "user",
+       "promoCode": "5B2EE"
+  }));
+   console.log("encryptedData",encryptedData);
+   console.log("ivString",ivString);
 
   // Listen on the specified port
   const port = process.env.PORT || 8888

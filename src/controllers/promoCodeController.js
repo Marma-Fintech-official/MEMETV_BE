@@ -6,7 +6,7 @@ const logger = require('../helpers/logger')
 require('dotenv').config()
 const { decryptedDatas } = require('../helpers/Decrypt');
 const {updateLevel} = require('./userController');
-const TOTALREWARDS_LIMIT = 21000000000;
+const TOTALREWARDS_LIMIT = 8000;
 
 // Update or create daily earned rewards
 const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
@@ -48,7 +48,7 @@ const updateDailyEarnedRewards = async (userId, telegramId, reward) => {
   }
 }
 
-const savePromoReward = async (user, rewardPoints) => {
+const savePromoReward = async (user, rewardPoints, category ) => {
   try {
     const today = new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD
 
@@ -56,7 +56,7 @@ const savePromoReward = async (user, rewardPoints) => {
     let rewardRecord = await UserReward.findOne({
       userId: user._id,
       telegramId: user.telegramId,
-      category: 'promo',
+      category,
       date: new Date(today)
     })
 
@@ -72,7 +72,7 @@ const savePromoReward = async (user, rewardPoints) => {
     } else {
       // If no record exists, create a new one
       rewardRecord = new UserReward({
-        category: 'promo',
+        category,
         date: new Date(today),
         rewardPoints: rewardPoints,
         userId: user._id,
@@ -148,7 +148,7 @@ const validatePromocode = async (req, res) => {
     await updateLevel(user);
     await user.save();
     await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
-    await savePromoReward(user, allowedPoints)
+    await savePromoReward(user, allowedPoints, 'promo')
 
     // Mark promo code as used
     validPromo.status = true
@@ -176,9 +176,72 @@ const validatePromocode = async (req, res) => {
     res.status(500).json({
       message: 'Something went wrong'
     })
-    next(err)
+    next(err)``
+  }
+}
+const yearlyEarnedreward = async (req, res, next) => {
+  const { telegramId, yearlyearnedReward } = req.body;
+  console.log(telegramId, yearlyearnedReward);
+
+  if (!telegramId || !yearlyearnedReward) {
+    return res
+      .status(400)
+      .json({ message: 'Telegram ID and reward amount are required.' });
+  }
+
+  try {
+    const user = await User.findOne({ telegramId }); // Fix: Pass an object to findOne
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const totalRewardsInSystem = await User.aggregate([
+      { $group: { _id: null, total: { $sum: '$balanceRewards' } } },
+    ]);
+    const totalRewardsUsed = totalRewardsInSystem[0]?.total || 0;
+    const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed;
+
+    if (availableSpace <= 0) {
+      logger.warn(
+        `The total rewards limit of ${TOTALREWARDS_LIMIT} has been reached.`
+      );
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`,
+      });
+    }
+
+    // Calculate the points user can claim without exceeding limits
+    const allowedPoints = Math.min(yearlyearnedReward, availableSpace);
+
+    user.earlyEarnedRewards += allowedPoints;
+    user.balanceRewards += allowedPoints;
+    user.totalRewards += allowedPoints;
+
+    await updateLevel(user); // Fix: Pass the user object to updateLevel
+    await user.save();
+    await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
+    await savePromoReward(user, allowedPoints, 'Early earned')
+
+    return res.status(200).json({
+      message: 'early earned reward added successfully.',
+      balanceRewards: user.balanceRewards,
+      totalRewards: user.totalRewards,
+      yearlyEarnedRewards: yearlyearnedReward,
+      claimedreward : allowedPoints
+    });
+  } catch (err) {
+     logger.error(
+      `Error processing early earned reward for telegramId: ${
+        telegramId || 'unknown'
+      } - ${err.message}`
+    );
+    res.status(500).json({
+      message: 'Something went wrong',
+    });
+    next(err);
   }
 }
 
 
-module.exports = { validatePromocode }
+module.exports = { validatePromocode, yearlyEarnedreward }

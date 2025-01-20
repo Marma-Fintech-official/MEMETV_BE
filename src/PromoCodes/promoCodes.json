@@ -17,7 +17,7 @@
   {
     "promoCode": "3EFF6",
     "reward": 3000,
-    "status": false
+    "status": true
   },
   {
     "promoCode": "C656C",
@@ -7232,12 +7232,12 @@
   {
     "promoCode": "E7D93",
     "reward": 3000,
-    "status": false
+    "status": true
   },
   {
     "promoCode": "F5569",
     "reward": 5000,
-    "status": false
+    "status": true
   },
   {
     "promoCode": "50E0D",
@@ -7247,17 +7247,17 @@
   {
     "promoCode": "259B9",
     "reward": 3000,
-    "status": false
+    "status": true
   },
   {
     "promoCode": "8F2D2",
     "reward": 5000,
-    "status": false
+    "status": true
   },
   {
     "promoCode": "5B2EE",
     "reward": 10000,
-    "status": false
+    "status": true
   },
   {
     "promoCode": "CAAAA",
@@ -7588,11 +7588,13 @@
     "promoCode": "253KA",
     "reward": 100000,
     "status": false
-  },  {
+  },
+  {
     "promoCode": "173MA",
     "reward": 100000,
     "status": false
-  },  {
+  },
+  {
     "promoCode": "100PO",
     "reward": 100000,
     "status": false
