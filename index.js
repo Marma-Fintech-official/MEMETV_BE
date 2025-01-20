@@ -87,7 +87,7 @@ if (cluster.isMaster) {
   app.use(router)
 
   app.get('/', (req, res) => {
-    res.send(' ***🔥🔥 TheMemeTv Backend Server is Running 🔥🔥*** ')
+    res.send(' ***🔥🔥 TheMemeTv Backend Server 2 is Running 🔥🔥*** ')
   })
 
   // Rate limiter
