@@ -12,7 +12,7 @@ require('dotenv').config()
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token,{polling: true})
+  const bot = new TelegramBot(token, {polling : true});
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
@@ -95,7 +95,7 @@ if (cluster.isMaster) {
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 1000 // Limit each IP to 1000 requests per window
   })
-  app.use(limiter)
+  app.use(limiter);
 
   // Listen on the specified port
   const port = process.env.PORT || 8888
