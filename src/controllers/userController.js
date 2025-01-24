@@ -1090,6 +1090,39 @@ const stakingRewards = async (req, res, next) => {
   }
 }
 
+const getMintedTokens = async (req, res, next) => {
+  try {
+    // Aggregate all users' balanceRewards
+    const totalMintedTokens = await User.aggregate([
+      {
+        $group: {
+          _id: null, // Group all documents
+          totalBalanceRewards: { $sum: "$balanceRewards" } // Sum the balanceRewards field
+        }
+      }
+    ]);
+
+    // Extract the total balanceRewards
+    const total = totalMintedTokens.length > 0 ? totalMintedTokens[0].totalBalanceRewards : 0;
+
+    // Respond with the total minted tokens
+    res.status(200).json({
+      totalMintedTokens: total
+    });
+  } catch (err) {
+    // Log the error
+    logger.error(`Error processing Minted Tokens - ${err.message}`);
+
+    // Send error response
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+
+    // Pass the error to the next middleware
+    next(err);
+  }
+};
+
 module.exports = {
   login,
   userGameRewards,
@@ -1097,5 +1130,6 @@ module.exports = {
   purchaseBooster,
   purchaseGameCards,
   stakingRewards,
+  getMintedTokens,
   updateLevel
 }
