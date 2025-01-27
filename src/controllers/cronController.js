@@ -78,7 +78,7 @@ const dailyRewardsForBlockChain = async (req, res, next) => {
 
     // Send response with the transformed data
     res.status(200).json({
-      message: 'Daily rewards fetched successfully.',
+      message: 'Daily rewards fetched Successfully.',
       data: transformedRewards,
     });
   } catch (err) {
