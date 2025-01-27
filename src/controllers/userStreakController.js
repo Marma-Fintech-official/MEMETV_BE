@@ -954,6 +954,10 @@ const loginStreakRewardClaim = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' })
     }
 
+    if (index < 0 || index >= user.streak.watchStreak.watchStreakReward.length) {
+      logger.warn(`Invalid index for telegramId: ${telegramId}, index: ${index}`);
+      return res.status(400).json({ message: 'Invalid index.' });
+    }
     const currentDate = new Date()
 
     // Check if the reward is valid
@@ -961,14 +965,13 @@ const loginStreakRewardClaim = async (req, res, next) => {
       user.streak.loginStreak.loginStreakReward.length > 0 &&
       user.streak.loginStreak.loginStreakReward[index] !== 0
     ) {
-      const rewardAmount = user.streak.loginStreak.loginStreakReward[index]
+      const rewardAmount = Number(user.streak.loginStreak.loginStreakReward[index] || 0);
 
+      
       // Validate reward amount
-      if (rewardAmount <= 0) {
-        logger.warn(
-          `No Login Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`
-        )
-        return res.status(400).json({ message: 'No rewards to claim.' })
+      if ((isNaN(rewardAmount) || rewardAmount <= 0) ){
+        logger.warn(`Invalid reward amount at index ${index}: ${user.streak.loginStreak.loginStreakReward[index]}`);
+      return res.status(400).json({ message: 'Invalid reward amount.' });
       }
 
       // Calculate the available space for total rewards globally
@@ -991,12 +994,13 @@ const loginStreakRewardClaim = async (req, res, next) => {
       const allowedPoints = Math.min(rewardAmount, availableSpace)
 
       // Update user rewards
-      user.totalRewards += allowedPoints
-      user.streakRewards += allowedPoints
-      user.balanceRewards += allowedPoints
+      user.totalRewards = Number(user.totalRewards || 0) + allowedPoints;
+    user.streakRewards = Number(user.streakRewards || 0) + allowedPoints;
+    user.balanceRewards = Number(user.balanceRewards || 0) + allowedPoints;
+
 
       // Update or partially update the claimed reward
-      user.streak.loginStreak.loginStreakReward[index] -= allowedPoints
+      user.streak.loginStreak.loginStreakReward[index] = 0
 
       // Mark the day as claimed if the full reward was claimed
       if (user.streak.loginStreak.loginStreakReward[index] === 0) {
@@ -1032,14 +1036,9 @@ const loginStreakRewardClaim = async (req, res, next) => {
         .json({ message: 'User has no Login Streak rewards to claim' })
     }
   } catch (err) {
-    const telegramId = req.body?.telegramId || 'unknown'
-    logger.error(
-      `Error while claiming Login Streak Reward for telegramId: ${telegramId}. Error: ${err.message}`
-    )
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
+    logger.error(`Error while claiming Login Streak Reward: ${err.message}`);
+    res.status(500).json({ message: 'Something went wrong' });
+    next(err);
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -1061,19 +1060,22 @@ const watchStreakRewardClaim = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' })
     }
 
+    if (index < 0 || index >= user.streak.watchStreak.watchStreakReward.length) {
+      logger.warn(`Invalid index for telegramId: ${telegramId}, index: ${index}`);
+      return res.status(400).json({ message: 'Invalid index.' });
+    }
+
     const currentDate = new Date()
 
     if (
       user.streak.watchStreak.watchStreakReward.length > 0 &&
       user.streak.watchStreak.watchStreakReward[index] != 0
     ) {
-      const rewardAmount = user.streak.watchStreak.watchStreakReward[index]
+      const rewardAmount = Number(user.streak.watchStreak.watchStreakReward[index]);
 
-      if (rewardAmount <= 0) {
-        logger.warn(
-          `No Watch Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`
-        )
-        return res.status(400).json({ message: 'No rewards to claim.' })
+      if (isNaN(rewardAmount) ||rewardAmount <= 0) {
+        logger.warn(`Invalid reward amount for telegramId: ${telegramId}, index: ${index}`);
+        return res.status(400).json({ message: 'Invalid reward amount.' });
       }
       // Calculate the available space for total rewards globally
       const totalRewardsInSystem = await User.aggregate([
@@ -1165,6 +1167,10 @@ const referStreakRewardClaim = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' })
     }
 
+    if (index < 0 || index >= user.streak.referStreak.referStreakReward.length) {
+      logger.warn(`Invalid index for telegramId: ${telegramId}, index: ${index}`);
+      return res.status(400).json({ message: 'Invalid index.' });
+    }
     const currentDate = new Date()
 
     // Check if reward is valid
@@ -1172,12 +1178,10 @@ const referStreakRewardClaim = async (req, res, next) => {
       user.streak.referStreak.referStreakReward.length > 0 &&
       user.streak.referStreak.referStreakReward[index] !== 0
     ) {
-      const rewardAmount = user.streak.referStreak.referStreakReward[index]
-      if (rewardAmount <= 0) {
-        logger.warn(
-          `No refer Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`
-        )
-        return res.status(400).json({ message: 'No rewards to claim.' })
+      const rewardAmount = Number(user.streak.referStreak.referStreakReward[index]);
+      if (isNaN(rewardAmount) ||rewardAmount <= 0) {
+        logger.warn(`Invalid reward amount for telegramId: ${telegramId}, index: ${index}`);
+        return res.status(400).json({ message: 'Invalid reward amount.' });
       }
       // Calculate the total available reward space globally
       const totalRewardsInSystem = await User.aggregate([

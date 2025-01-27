@@ -8,6 +8,7 @@ const {
   purchaseBooster,
   purchaseGameCards,
   stakingRewards,
+  getMintedTokens
 } = require('../controllers/userController');
 const { commonPayload } = require('../helpers/validation');
 
@@ -22,6 +23,8 @@ router.post('/purchaseBooster', celebrate(commonPayload), purchaseBooster);
 router.post('/purchaseGameCards', celebrate(commonPayload), purchaseGameCards);
 
 router.post('/stakingRewards', celebrate(commonPayload), stakingRewards);
+
+router.get("/getMintedTokens", getMintedTokens)
 
 router.use(errors());
 
