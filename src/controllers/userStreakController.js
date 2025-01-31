@@ -10,7 +10,6 @@ const {
   calculateDayDifference,
   checkStartDay,
   setCurrentDay,
-  updateClaimedDayArray,
   distributionStartDate,
 } = require('../helpers/constants');
 const {decryptedDatas} = require('../helpers/Decrypt');
@@ -254,9 +253,6 @@ const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
 
       unClaimedStreakRewardsClaim(user)
     } else {
-      if (user.streak.loginStreak.loginStreakCount == 0) {
-        updateClaimedDayArray(user, true)
-      }
       user.streak.loginStreak.loginStreakCount++
       user.streak.loginStreak.loginStreakDate = new Date()
     }

@@ -113,19 +113,7 @@ const setCurrentDay = async (user)=>{
   }
   return user.streak.currentDay;
 }
-const updateClaimedDayArray = (user,firstLogin)=>{
-  if(firstLogin){
-    const startDay = user.streak.startDay;
-    for(i=0;i<startDay-1;i++){
 
-      user.streak.claimedLoginDays[i]=true;
-      user.streak.claimedWatchDays[i]=true;
-      user.streak.claimedReferDays[i]=true;
-      user.streak.claimedTaskDays[i]=true;
-      user.streak.claimedMultiDays[i]=true;
-    }
-  }
-}
 
 module.exports = {
   levelUpBonuses,
@@ -139,7 +127,6 @@ module.exports = {
   calculateDayDifference,
   checkStartDay,
   setCurrentDay,
-  updateClaimedDayArray,
   distributionStartDate
   
 }
