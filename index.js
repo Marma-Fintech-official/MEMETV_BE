@@ -31,7 +31,7 @@ if (cluster.isMaster) {
                 {
                   text: '#doNothing',
                   web_app: {
-                    url: `https://radiant-salamander-b1182a.netlify.app/?start=${referredId}`
+                    url: `https://voluble-taiyaki-69f543.netlify.app/?start=${referredId}`
                   }
                 }
               ],
