@@ -10,7 +10,6 @@ const {
   calculateDayDifference,
   checkStartDay,
   setCurrentDay,
-  updateClaimedDayArray,
   distributionStartDate,
 } = require('../helpers/constants');
 const {decryptedDatas} = require('../helpers/Decrypt');
@@ -107,6 +106,76 @@ const updateBoosterForStreak = (user, streakType, count) => {
   addOrUpdateBooster(user, boosterType, count)
 }
 
+//function to check the start date and not update it
+const rewardAmountcheckStartDayWatchReferTaskMulti = async (user)=>{
+  //will calculate day difference between curent date and distribution end
+  const res = Math.abs(await calculateDayDifference(distributionStartDate))+1;
+  if(res%7==0){
+    return 7;
+  }
+  else if(res%7==6){
+    return 6;
+  }
+  else if(res%7==5){
+    return 5;
+  }
+  else if(res%7==4){
+    return 4;
+  }
+  else if(res%7==3){
+    return 3;
+  }
+  else if(res%7==2){
+    return 2;
+  }
+  else if(res%7==1){
+    return 1;
+  }
+}
+
+//function to reset the streak
+const resetStreak = (user, streakType) => {
+  const streak = user.streak[streakType];
+  // Move rewards to unclaimed
+  for (let i = 0; i < streak[`${streakType}Reward`].length; i++) {
+    streak[`unClaimed${capitalizeFirstLetter(streakType)}Reward`] += streak[`${streakType}Reward`][i];
+    streak[`${streakType}Reward`][i] = 0;
+    streak[`${streakType}RewardUnclaimed`][i] = 0;
+  }
+  const match = streakType.match(/^[^A-Z]*/);
+  // Reset claimed days to false
+  user.streak[`claimed${capitalizeFirstLetter(match[0])}Days`] = new Array(7).fill(false);
+};
+
+
+//function to calculate the reward amount
+const updateStreakReward = (user, streakType, streakRewardList, index) => {
+  const streak = user.streak[streakType];
+
+  // Check if the streak data exists and the count is valid
+  if (streak && streak[`${streakType}Count`] > 0) {
+    const countIndex = streak[`${streakType}Count`] - 1; // Get the correct index
+    const rewardAmount = streakRewardList[countIndex];
+    for(let i=0;i<index;i++){
+      if(streak[`${streakType}Reward`][i]===undefined){
+        streak[`${streakType}Reward`][i]=0;
+        streak[`${streakType}RewardUnclaimed`][i] = 0;
+      }
+    }
+    // Assign the reward amount to the corresponding streak reward
+    streak[`${streakType}Reward`][index] = rewardAmount;
+    // Assign the reward amount to the corresponding unclaimed streak reward array
+    streak[`${streakType}RewardUnclaimed`][index] = rewardAmount;
+  } else {
+    console.error(`Invalid streak data for type: ${streakType}`);
+  }
+};
+
+
+const capitalizeFirstLetter = (string) => string.charAt(0).toUpperCase() + string.slice(1);
+
+
+
 const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
   const currentDate = new Date()
   const currentDay = currentDate.getUTCDate()
@@ -121,94 +190,22 @@ const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
     user.streak.loginStreak.loginStreakCount == 0
   ) {
     await setCurrentDay(user)
+    if(user.streak.loginStreak.loginStreakCount == 0) await checkStartDay(user);
     if (
       user.streak.loginStreak.loginStreakCount === 7 ||
       (differenceInDays % 7) + 1 === 7
     ) {
       user.streak.loginStreak.loginStreakCount = 1
       user.streak.loginStreak.loginStreakDate = new Date()
-      for (
-        let i = 0;
-        i < user.streak.loginStreak.loginStreakReward.length;
-        i++
-      ) {
-        user.streak.loginStreak.unClaimedLoginStreakReward +=
-          user.streak.loginStreak.loginStreakReward[i]
-        user.streak.loginStreak.loginStreakReward[i] = 0
-      }
-      //watch streak reward moving to unclaimed watch streak rewards
-      for (i = 0; i < user.streak.watchStreak.watchStreakReward.length; i++) {
-        user.streak.watchStreak.unClaimedWatchStreakReward +=
-          user.streak.watchStreak.watchStreakReward[i]
-        user.streak.watchStreak.watchStreakReward[i] = 0
-      }
-      //Refer streak reward moving to unclaimed refer streak rewards
-      for (i = 0; i < user.streak.referStreak.referStreakReward.length; i++) {
-        user.streak.referStreak.unClaimedReferStreakReward +=
-          user.streak.referStreak.referStreakReward[i]
-        user.streak.referStreak.referStreakReward[i] = 0
-      }
-      //Task streak reward moving to unclaimed task streak rewards
-      for (i = 0; i < user.streak.taskStreak.taskStreakReward.length; i++) {
-        user.streak.taskStreak.unClaimedTaskStreakReward +=
-          user.streak.taskStreak.taskStreakReward[i]
-        user.streak.taskStreak.taskStreakReward[i] = 0
-      }
-      //Multi streak reward moving to unclaimed multi streak rewards
-      for (i = 0; i < user.streak.multiStreak.multiStreakReward.length; i++) {
-        user.streak.multiStreak.unClaimedMultiStreakReward +=
-          user.streak.multiStreak.multiStreakReward[i]
-        user.streak.multiStreak.multiStreakReward[i] = 0
-      }
-
-      // Update all elements in the claimedLoginDays array to false
-      user.streak.claimedLoginDays = [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-      user.streak.claimedWatchDays = [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-      user.streak.claimedReferDays = [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-      user.streak.claimedTaskDays = [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-      user.streak.claimedMultiDays = [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-      unClaimedStreakRewardsClaim(user)
       const startDay = await checkStartDay(user)
+      // Reset all streaks
+      const streakTypes = ['loginStreak', 'watchStreak', 'referStreak', 'taskStreak', 'multiStreak'];
+      for (let i = 0; i < streakTypes.length; i++) {
+        const streakType = streakTypes[i];
+        resetStreak(user, streakType);
+      }
+      //function to claim the unclaimed rewards
+      unClaimedStreakRewardsClaim(user)
     } else if (
       (await calculateDayDifference(user.streak.loginStreak.loginStreakDate)) >
       1
@@ -216,98 +213,55 @@ const calculateLoginStreak = async (user, lastLoginDate, differenceInDays) => {
       const loginDayDifference = await calculateDayDifference(
         user.streak.loginStreak.loginStreakDate
       )
-      for (i = 0; i < loginDayDifference; i++) {
-        if (((differenceInDays + i) % 7) + 1 === 7) {
-          unClaimedStreakRewardsClaim(user)
-          user.streak.claimedLoginDays = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-          ]
-          user.streak.claimedWatchDays = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-          ]
-          user.streak.claimedReferDays = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-          ]
-          user.streak.claimedTaskDays = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-          ]
-          user.streak.claimedMultiDays = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-          ]
-        }
-      }
+      
       user.streak.loginStreak.loginStreakCount = 1
-      //update claimedLoginDays bool array
 
       const startDay = await checkStartDay(user)
+      
       const loginStreakDayDifference = await calculateDayDifference(
         user.streak.loginStreak.loginStreakDate
       )
-      if (loginStreakDayDifference <= 7) {
-        if (startDay > 1) {
-          for (i = 0; i < loginStreakDayDifference - 1; i++) {
-            if (startDay - (i + 2) >= 0) {
-              user.streak.claimedLoginDays[startDay - (i + 2)] = true
-              user.streak.claimedWatchDays[startDay - (i + 2)] = true
-              user.streak.claimedReferDays[startDay - (i + 2)] = true
-              user.streak.claimedTaskDays[startDay - (i + 2)] = true
-              user.streak.claimedMultiDays[startDay - (i + 2)] = true
-            }
-          }
-        }
-      }
+
       user.streak.loginStreak.loginStreakDate = new Date()
       for (i = 0; i < user.streak.loginStreak.loginStreakReward.length; i++) {
         user.streak.loginStreak.unClaimedLoginStreakReward +=
           user.streak.loginStreak.loginStreakReward[i]
         user.streak.loginStreak.loginStreakReward[i] = 0
       }
-    } else {
-      if (user.streak.loginStreak.loginStreakCount == 0) {
-        const startDay = await checkStartDay(user)
-        updateClaimedDayArray(user, true)
+
+      for (i = 0; i < user.streak.watchStreak.watchStreakReward.length; i++) {
+        user.streak.watchStreak.unClaimedWatchStreakReward +=
+          user.streak.watchStreak.watchStreakReward[i]
+        user.streak.watchStreak.watchStreakReward[i] = 0
       }
+
+      for (
+        i = 0;
+        i < user.streak.referStreak.referStreakReward.length;
+        i++
+      ) {
+        user.streak.referStreak.unClaimedReferStreakReward +=
+          user.streak.referStreak.referStreakReward[i]
+        user.streak.referStreak.referStreakReward[i] = 0
+      }
+
+      for (i = 0; i < user.streak.taskStreak.taskStreakReward.length; i++) {
+        user.streak.taskStreak.unClaimedTaskStreakReward +=
+          user.streak.taskStreak.taskStreakReward[i]
+        user.streak.taskStreak.taskStreakReward[i] = 0
+      }
+
+      unClaimedStreakRewardsClaim(user)
+    } else {
       user.streak.loginStreak.loginStreakCount++
       user.streak.loginStreak.loginStreakDate = new Date()
     }
-    const rewardAmount =
-      loginStreakReward[user.streak.loginStreak.loginStreakCount - 1]
-
     //add rewards to login streak rewards
-    user.streak.loginStreak.loginStreakReward[
-      user.streak.loginStreak.loginStreakCount - 1
-    ] = rewardAmount
+    const nthDay = (await calculateDayDifference(
+      distributionStartDate
+    )%7)
     
+    updateStreakReward(user, "loginStreak", loginStreakReward, nthDay);
     updateBoosterForStreak(user, '3', user.streak.loginStreak.loginStreakCount)
 
     return true
@@ -345,21 +299,7 @@ const calculateWatchStreak = async (
       ) {
         user.streak.watchStreak.watchStreakCount = 1
         user.streak.watchStreak.watchStreakDate = new Date()
-        for (i = 0; i < user.streak.watchStreak.watchStreakReward.length; i++) {
-          user.streak.watchStreak.unClaimedWatchStreakReward +=
-            user.streak.watchStreak.watchStreakReward[i]
-          user.streak.watchStreak.watchStreakReward[i] = 0
-        }
-        // Update all elements in the claimedWatchDays array to false
-        user.streak.claimedWatchDays = [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ]
+        resetStreak(user, "watchStreak");
         unClaimedStreakRewardsClaim(user)
       } else if (
         (await calculateDayDifference(
@@ -370,51 +310,38 @@ const calculateWatchStreak = async (
         const watchDayDifference = await calculateDayDifference(
           user.streak.watchStreak.watchStreakDate
         )
-        for (i = 0; i < watchDayDifference; i++) {
+        
+        for (i = 0; i < watchDayDifference-1; i++) {
           if (((differenceInDays + i) % 7) + 1 === 7) {
             unClaimedStreakRewardsClaim(user)
           }
         }
         user.streak.watchStreak.watchStreakCount = 1
-        //update claimedWatchDays bool array
-        const startDay = user.streak.startDay
+        const startDay = await rewardAmountcheckStartDayWatchReferTaskMulti(user)
         const watchStreakDayDifference = await calculateDayDifference(
           user.streak.watchStreak.watchStreakDate
         )
-        if (watchStreakDayDifference <= 7) {
-          if (startDay > 1) {
-            for (i = 0; i < watchStreakDayDifference - 1; i++) {
-              if (startDay - (i + 2) >= 0) {
-                user.streak.claimedWatchDays[startDay - (i + 2)] = true
-              }
-            }
-          }
-        }
+        
         user.streak.watchStreak.watchStreakDate = new Date()
-        for (i = 0; i < user.streak.watchStreak.watchStreakReward.length; i++) {
-          user.streak.watchStreak.unClaimedWatchStreakReward +=
-            user.streak.watchStreak.watchStreakReward[i]
-          user.streak.watchStreak.watchStreakReward[i] = 0
-        }
+
       } else if (userWatchSeconds >= 180) {
         user.streak.watchStreak.watchStreakCount++
         user.streak.watchStreak.watchStreakDate = new Date()
       }
-      const rewardAmount =
-        watchStreakReward[user.streak.watchStreak.watchStreakCount - 1]
-      //add rewards to watch streak rewards
-      user.streak.watchStreak.watchStreakReward[
-        user.streak.watchStreak.watchStreakCount - 1
-      ] = rewardAmount
-      // for(i=0 ;i<user.streak.watchStreak.watchStreakCount;i++){
-      //   user.boosters.push({type: "3x", count: 1});
-      // }
-      updateBoosterForStreak(
-        user,
-        '3',
-        user.streak.watchStreak.watchStreakCount
-      )
 
+      if(await calculateDayDifference(
+        user.streak.watchStreak.watchStreakDate
+      )===0){
+        const nthDay = (await calculateDayDifference(
+          distributionStartDate
+        )%7)
+        updateStreakReward(user, "watchStreak", watchStreakReward, nthDay);
+        updateBoosterForStreak(
+          user,
+          '3',
+          user.streak.watchStreak.watchStreakCount
+        )
+      }
       return true
     } else {
       // same day login and no WATCH STREAK reward will be claimed
@@ -467,25 +394,7 @@ const calculateReferStreak = async (user, todaysLogin, differenceInDays) => {
         ) {
           user.streak.referStreak.referStreakCount = 1
           user.streak.referStreak.referStreakDate = new Date()
-          for (
-            i = 0;
-            i < user.streak.referStreak.referStreakReward.length;
-            i++
-          ) {
-            user.streak.referStreak.unClaimedReferStreakReward +=
-              user.streak.referStreak.referStreakReward[i]
-            user.streak.referStreak.referStreakReward[i] = 0
-          }
-          // Update all elements in the claimedReferDays array to false
-          user.streak.claimedReferDays = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-          ]
+          resetStreak(user, "referStreak");
           unClaimedStreakRewardsClaim(user)
         } else if (isOnReferStreak) {
           user.streak.referStreak.referStreakCount++
@@ -500,49 +409,31 @@ const calculateReferStreak = async (user, todaysLogin, differenceInDays) => {
             }
           }
           user.streak.referStreak.referStreakCount = 1
-          //update claimedReferDays bool array
-          const startDay = user.streak.startDay
+          const startDay = await rewardAmountcheckStartDayWatchReferTaskMulti(user)
           const referStreakDayDifference = await calculateDayDifference(
             user.streak.referStreak.referStreakDate
           )
-          if (referStreakDayDifference <= 7) {
-            if (startDay > 1) {
-              for (i = 0; i < referStreakDayDifference - 1; i++) {
-                if (startDay - (i + 2) >= 0) {
-                  user.streak.claimedReferDays[startDay - (i + 2)] = true
-                }
-              }
-            }
-          }
           user.streak.referStreak.referStreakDate = new Date()
-          for (
-            i = 0;
-            i < user.streak.referStreak.referStreakReward.length;
-            i++
-          ) {
-            user.streak.referStreak.unClaimedReferStreakReward +=
-              user.streak.referStreak.referStreakReward[i]
-            user.streak.referStreak.referStreakReward[i] = 0
-          }
+          
         }
+        if(await calculateDayDifference(
+          user.streak.referStreak.referStreakDate
+        )===0){
+          const nthDay = (await calculateDayDifference(
+            distributionStartDate
+          )%7)
+          updateStreakReward(user, "referStreak", referStreakReward, nthDay);
+          updateBoosterForStreak(
+            user,
+            '3',
+            user.streak.referStreak.referStreakCount
+          )
+        }
+        return true
       } else {
+        // same day referring and no REFER STREAK reward will be claimed
         return true
       }
-
-      const rewardAmount =
-        referStreakReward[user.streak.referStreak.referStreakCount - 1]
-      //add rewards to watch streak rewards
-      user.streak.referStreak.referStreakReward[
-        user.streak.referStreak.referStreakCount - 1
-      ] = rewardAmount
-
-      updateBoosterForStreak(
-        user,
-        '3',
-        user.streak.referStreak.referStreakCount
-      )
-
-      return true
     } else {
       return false
     }
@@ -553,6 +444,7 @@ const calculateReferStreak = async (user, todaysLogin, differenceInDays) => {
 
 const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
   // check a user has logged in today
+  console.log("Inisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task Streak");
   if (todaysLogin) {
     const currentDate = new Date()
     const currentDay = currentDate.getUTCDate()
@@ -574,21 +466,7 @@ const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
       ) {
         user.streak.taskStreak.taskStreakCount = 1
         user.streak.taskStreak.taskStreakDate = new Date()
-        for (i = 0; i < user.streak.taskStreak.taskStreakReward.length; i++) {
-          user.streak.taskStreak.unClaimedTaskStreakReward +=
-            user.streak.taskStreak.taskStreakReward[i]
-          user.streak.taskStreak.taskStreakReward[i] = 0
-        }
-        // Update all elements in the claimedTaskDays array to false
-        user.streak.claimedTaskDays = [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ]
+        resetStreak(user, "taskStreak");
         unClaimedStreakRewardsClaim(user)
       } else if (
         (await calculateDayDifference(user.streak.taskStreak.taskStreakDate)) >
@@ -603,41 +481,30 @@ const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
           }
         }
         user.streak.taskStreak.taskStreakCount = 1
-        //update claimedTaskDays bool array
-        const startDay = user.streak.startDay
+        const startDay = await rewardAmountcheckStartDayWatchReferTaskMulti(user)
         const taskStreakDayDifference = await calculateDayDifference(
           user.streak.taskStreak.taskStreakDate
         )
-        if (taskStreakDayDifference <= 7) {
-          if (startDay > 1) {
-            for (i = 0; i < taskStreakDayDifference - 1; i++) {
-              if (startDay - (i + 2) >= 0) {
-                user.streak.claimedTaskDays[startDay - (i + 2)] = true
-              }
-            }
-          }
-        }
         user.streak.taskStreak.taskStreakDate = new Date()
-        for (i = 0; i < user.streak.taskStreak.taskStreakReward.length; i++) {
-          user.streak.taskStreak.unClaimedTaskStreakReward +=
-            user.streak.taskStreak.taskStreakReward[i]
-          user.streak.taskStreak.taskStreakReward[i] = 0
-        }
+        
       } else {
         user.streak.taskStreak.taskStreakCount++
         user.streak.taskStreak.taskStreakDate = new Date()
       }
+      if(await calculateDayDifference(
+        user.streak.taskStreak.taskStreakDate
+      )===0){
+        const nthDay = (await calculateDayDifference(
+          distributionStartDate
+        )%7)
+        updateStreakReward(user, "taskStreak", taskStreakReward, nthDay);
+        updateBoosterForStreak(user, '3', user.streak.taskStreak.taskStreakCount)
+      }
+      return true
     } else {
+      // same day playing and no TASK STREAK reward will be claimed
       return true
     }
-    const rewardAmount =
-      taskStreakReward[user.streak.taskStreak.taskStreakCount - 1]
-    //add rewards to watch streak rewards
-    user.streak.taskStreak.taskStreakReward[
-      user.streak.taskStreak.taskStreakCount - 1
-    ] = rewardAmount
-    updateBoosterForStreak(user, '3', user.streak.taskStreak.taskStreakCount)
-    return true
   } else {
     return false
   }
@@ -647,6 +514,7 @@ const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
 const streak = async (req, res, next) => {
   try {
     const { telegramId, userWatchSeconds } = decryptedDatas(req);
+    // const { telegramId, userWatchSeconds } = req.body;
 
     // Log the incoming request
     logger.info(
@@ -676,16 +544,18 @@ const streak = async (req, res, next) => {
     const differenceInTime = Math.abs(
       currentDate.getTime() - distributionStartDate.getTime()
     )
+    
+    
     // Convert the difference from milliseconds to days
     const differenceInDays =
       Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
-
     // Calculate streaks
-    const login = await calculateLoginStreak(
-      user,
-      lastLoginTime,
-      differenceInDays
-    )
+    // const login = await calculateLoginStreak(
+    //   user,
+    //   lastLoginTime,
+    //   differenceInDays
+    // )
+    const login = await calculateDayDifference(user.streak.loginStreak.loginStreakDate)==0
     const watch = await calculateWatchStreak(
       user,
       userWatchSeconds,
@@ -693,7 +563,7 @@ const streak = async (req, res, next) => {
       differenceInDays
     )
     const refer = await calculateReferStreak(user, login, differenceInDays)
-    const task = await calculateTaskStreak(user, login, differenceInDays)
+    const task = await calculateDayDifference(user.streak.taskStreak.taskStreakDate)==0
 
     await user.save()
 
@@ -747,26 +617,16 @@ const calculateMultiStreak = async (user, todaysLogin, differenceInDays) => {
           }
         }
         user.streak.multiStreak.multiStreakCount = 1
-        //update claimedMultiDays bool array
-        const startDay = user.streak.startDay
+        const startDay = await rewardAmountcheckStartDayWatchReferTaskMulti(user)
         const multiStreakDayDifference = await calculateDayDifference(
           user.streak.multiStreak.multiStreakDate
         )
-        if (multiStreakDayDifference <= 7) {
-          if (startDay > 1) {
-            for (i = 0; i < multiStreakDayDifference - 1; i++) {
-              if (startDay - (i + 2) >= 0) {
-                user.streak.claimedMultiDays[startDay - (i + 2)] = true
-              }
-            }
-          }
-        }
         user.streak.multiStreak.multiStreakDate = new Date()
-        for (i = 0; i < user.streak.multiStreak.multiStreakReward.length; i++) {
-          user.streak.multiStreak.unClaimedMultiStreakReward +=
-            user.streak.multiStreak.multiStreakReward[i]
-          user.streak.multiStreak.multiStreakReward[i] = 0
-        }
+        // for (i = 0; i < user.streak.multiStreak.multiStreakReward.length; i++) {
+        //   user.streak.multiStreak.unClaimedMultiStreakReward +=
+        //     user.streak.multiStreak.multiStreakReward[i]
+        //   user.streak.multiStreak.multiStreakReward[i] = 0
+        // }
         user.streak.multiStreak.streakOfStreakCount = 1
         user.streak.multiStreak.lastSOSReward = 0
       } else if (
@@ -781,34 +641,29 @@ const calculateMultiStreak = async (user, todaysLogin, differenceInDays) => {
         user.streak.multiStreak.streakOfStreakCount++
         user.streak.multiStreak.multiStreakCount = 1
         user.streak.multiStreak.multiStreakDate = new Date()
-        // Update all elements in the claimedMultiDays array to false
-        user.streak.claimedMultiDays = [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ]
         unClaimedStreakRewardsClaim(user)
       } else {
         user.streak.multiStreak.multiStreakCount++
         user.streak.multiStreak.streakOfStreakCount++
         user.streak.multiStreak.multiStreakDate = new Date()
       }
+      
+      const nthDay = (await calculateDayDifference(
+        distributionStartDate
+      )%7)
+      
+      updateStreakReward(user, "multiStreak", multiStreakReward, nthDay);
       updateBoosterForStreak(
         user,
         '5',
         user.streak.multiStreak.multiStreakCount
       )
-
       const rewardAmount =
         multiStreakReward[user.streak.multiStreak.multiStreakCount - 1]
       //add rewards to multi streak rewards
-      user.streak.multiStreak.multiStreakReward[
-        user.streak.multiStreak.multiStreakCount - 1
-      ] = rewardAmount
+      // user.streak.multiStreak.multiStreakReward[
+      //   user.streak.multiStreak.multiStreakCount - 1
+      // ] = rewardAmount
       // SOS reward calculation
       if (user.streak.multiStreak.streakOfStreakCount > 1) {
         if (
@@ -854,6 +709,7 @@ const calculateMultiStreak = async (user, todaysLogin, differenceInDays) => {
 const streakOfStreak = async (req, res, next) => {
   try {
     const { telegramId } = decryptedDatas(req);
+    // const { telegramId } = req.body;
 
     // Log the incoming request
     logger.info(
@@ -941,7 +797,9 @@ const streakOfStreak = async (req, res, next) => {
 
 const loginStreakRewardClaim = async (req, res, next) => {
   try {
+    
     const { telegramId, index } = decryptedDatas(req);
+    // const { telegramId, index } = req.body
 
     logger.info(
       `Attempting to claim Login Streak Reward for telegramId: ${telegramId}, index: ${index}`
@@ -954,10 +812,6 @@ const loginStreakRewardClaim = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' })
     }
 
-    if (index < 0 || index >= user.streak.watchStreak.watchStreakReward.length) {
-      logger.warn(`Invalid index for telegramId: ${telegramId}, index: ${index}`);
-      return res.status(400).json({ message: 'Invalid index.' });
-    }
     const currentDate = new Date()
 
     // Check if the reward is valid
@@ -965,13 +819,14 @@ const loginStreakRewardClaim = async (req, res, next) => {
       user.streak.loginStreak.loginStreakReward.length > 0 &&
       user.streak.loginStreak.loginStreakReward[index] !== 0
     ) {
-      const rewardAmount = Number(user.streak.loginStreak.loginStreakReward[index] || 0);
+      const rewardAmount = user.streak.loginStreak.loginStreakReward[index]
 
-      
       // Validate reward amount
-      if ((isNaN(rewardAmount) || rewardAmount <= 0) ){
-        logger.warn(`Invalid reward amount at index ${index}: ${user.streak.loginStreak.loginStreakReward[index]}`);
-      return res.status(400).json({ message: 'Invalid reward amount.' });
+      if (rewardAmount <= 0) {
+        logger.warn(
+          `No Login Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`
+        )
+        return res.status(400).json({ message: 'No rewards to claim.' })
       }
 
       // Calculate the available space for total rewards globally
@@ -994,21 +849,15 @@ const loginStreakRewardClaim = async (req, res, next) => {
       const allowedPoints = Math.min(rewardAmount, availableSpace)
 
       // Update user rewards
-      user.totalRewards = Number(user.totalRewards || 0) + allowedPoints;
-    user.streakRewards = Number(user.streakRewards || 0) + allowedPoints;
-    user.balanceRewards = Number(user.balanceRewards || 0) + allowedPoints;
-
+      user.totalRewards += allowedPoints
+      user.streakRewards += allowedPoints
+      user.balanceRewards += allowedPoints
 
       // Update or partially update the claimed reward
-      user.streak.loginStreak.loginStreakReward[index] = 0
+      user.streak.loginStreak.loginStreakReward[index] -= allowedPoints
 
-      // Mark the day as claimed if the full reward was claimed
-      if (user.streak.loginStreak.loginStreakReward[index] === 0) {
-        const startDay = user.streak.startDay
-        user.streak.claimedLoginDays[index + (startDay - 1)] = true
-      }
 
-      await updateLevel(user);
+      // await updateLevel(user);
       await user.save()
 
       // Save reward record and update daily rewards
@@ -1036,9 +885,14 @@ const loginStreakRewardClaim = async (req, res, next) => {
         .json({ message: 'User has no Login Streak rewards to claim' })
     }
   } catch (err) {
-    logger.error(`Error while claiming Login Streak Reward: ${err.message}`);
-    res.status(500).json({ message: 'Something went wrong' });
-    next(err);
+    const telegramId = req.body?.telegramId || 'unknown'
+    logger.error(
+      `Error while claiming Login Streak Reward for telegramId: ${telegramId}. Error: ${err.message}`
+    )
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -1047,6 +901,7 @@ const loginStreakRewardClaim = async (req, res, next) => {
 const watchStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId, index } = decryptedDatas(req);
+    // const { telegramId, index } = req.body;
 
     // Log the incoming request
     logger.info(
@@ -1060,22 +915,19 @@ const watchStreakRewardClaim = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' })
     }
 
-    if (index < 0 || index >= user.streak.watchStreak.watchStreakReward.length) {
-      logger.warn(`Invalid index for telegramId: ${telegramId}, index: ${index}`);
-      return res.status(400).json({ message: 'Invalid index.' });
-    }
-
     const currentDate = new Date()
 
     if (
       user.streak.watchStreak.watchStreakReward.length > 0 &&
       user.streak.watchStreak.watchStreakReward[index] != 0
     ) {
-      const rewardAmount = Number(user.streak.watchStreak.watchStreakReward[index]);
+      const rewardAmount = user.streak.watchStreak.watchStreakReward[index]
 
-      if (isNaN(rewardAmount) ||rewardAmount <= 0) {
-        logger.warn(`Invalid reward amount for telegramId: ${telegramId}, index: ${index}`);
-        return res.status(400).json({ message: 'Invalid reward amount.' });
+      if (rewardAmount <= 0) {
+        logger.warn(
+          `No Watch Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`
+        )
+        return res.status(400).json({ message: 'No rewards to claim.' })
       }
       // Calculate the available space for total rewards globally
       const totalRewardsInSystem = await User.aggregate([
@@ -1102,17 +954,8 @@ const watchStreakRewardClaim = async (req, res, next) => {
       // Set the claimed reward to 0
       user.streak.watchStreak.watchStreakReward[index] -= allowedPoints
 
-      // Update the claimed watch streak days array
-      // const startDay = user.streak.startDay;
-      // user.streak.claimedWatchDays[index + (startDay - 1)] = true;
-
-      // Mark the day as claimed if the full reward was claimed
-      if (user.streak.watchStreak.watchStreakReward[index] === 0) {
-        const startDay = user.streak.startDay
-        user.streak.claimedWatchDays[index + (startDay - 1)] = true
-      }
       
-      await updateLevel(user);
+      // await updateLevel(user);
       await user.save()
       // Save the reward record
       await saveStreakReward(user, allowedPoints)
@@ -1155,6 +998,7 @@ const watchStreakRewardClaim = async (req, res, next) => {
 const referStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId, index } = decryptedDatas(req);
+    // const { telegramId, index } = req.body;
 
     logger.info(
       `Attempting to claim Refer Streak Reward for telegramId: ${telegramId}, index: ${index}`
@@ -1167,10 +1011,6 @@ const referStreakRewardClaim = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' })
     }
 
-    if (index < 0 || index >= user.streak.referStreak.referStreakReward.length) {
-      logger.warn(`Invalid index for telegramId: ${telegramId}, index: ${index}`);
-      return res.status(400).json({ message: 'Invalid index.' });
-    }
     const currentDate = new Date()
 
     // Check if reward is valid
@@ -1178,10 +1018,12 @@ const referStreakRewardClaim = async (req, res, next) => {
       user.streak.referStreak.referStreakReward.length > 0 &&
       user.streak.referStreak.referStreakReward[index] !== 0
     ) {
-      const rewardAmount = Number(user.streak.referStreak.referStreakReward[index]);
-      if (isNaN(rewardAmount) ||rewardAmount <= 0) {
-        logger.warn(`Invalid reward amount for telegramId: ${telegramId}, index: ${index}`);
-        return res.status(400).json({ message: 'Invalid reward amount.' });
+      const rewardAmount = user.streak.referStreak.referStreakReward[index]
+      if (rewardAmount <= 0) {
+        logger.warn(
+          `No refer Streak rewards to claim for telegramId: ${telegramId}, index: ${index}`
+        )
+        return res.status(400).json({ message: 'No rewards to claim.' })
       }
       // Calculate the total available reward space globally
       const totalRewardsInSystem = await User.aggregate([
@@ -1210,13 +1052,8 @@ const referStreakRewardClaim = async (req, res, next) => {
       // Reduce the reward amount or mark it as fully claimed
       user.streak.referStreak.referStreakReward[index] -= allowedPoints
 
-      if (user.streak.referStreak.referStreakReward[index] === 0) {
-        // Update the claimed refer streak days array
-        const startDay = user.streak.startDay
-        user.streak.claimedReferDays[index + (startDay - 1)] = true
-      }
 
-      await updateLevel(user);
+      // await updateLevel(user);
       // Save the user record
       await user.save()
 
@@ -1261,6 +1098,7 @@ const referStreakRewardClaim = async (req, res, next) => {
 const taskStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId, index } = decryptedDatas(req);
+    // const { telegramId, index } = req.body;
 
     // Log the incoming request
     logger.info(
@@ -1313,13 +1151,7 @@ const taskStreakRewardClaim = async (req, res, next) => {
       // Set the claimed reward to 0
       user.streak.taskStreak.taskStreakReward[index] -= allowedPoints
 
-      if (user.streak.taskStreak.taskStreakReward[index] === 0) {
-        // Update the claimedTaskDays array
-        const startDay = user.streak.startDay
-        user.streak.claimedTaskDays[index + (startDay - 1)] = true
-      }
-
-      await updateLevel(user);
+      // await updateLevel(user);
       await user.save()
       // Save the reward record
       await saveStreakReward(user, rewardAmount)
@@ -1363,6 +1195,7 @@ const taskStreakRewardClaim = async (req, res, next) => {
 const multiStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId, index } = decryptedDatas(req);
+    // const { telegramId, index } = req.body;
 
     // Log the incoming request
     logger.info(
@@ -1415,16 +1248,11 @@ const multiStreakRewardClaim = async (req, res, next) => {
       // Set the claimed reward to 0
       user.streak.multiStreak.multiStreakReward[index] -= allowedPoints
 
-      if (user.streak.multiStreak.multiStreakReward[index] === 0) {
-        // Update the claimedMultiDays array
-        const startDay = user.streak.startDay
-        user.streak.claimedMultiDays[index + (startDay - 1)] = true
-      }
       await user.save()
       // Save the reward record
       await saveStreakReward(user, allowedPoints)
       await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
-      await updateLevel(user);
+      // await updateLevel(user);
 
       logger.info(
         `Multi Streak Reward claimed successfully for telegramId: ${telegramId}`
@@ -1464,6 +1292,7 @@ const multiStreakRewardClaim = async (req, res, next) => {
 const streakOfStreakRewardClaim = async (req, res, next) => {
   try {
     const { telegramId } = decryptedDatas(req);
+    // const { telegramId } = req.body;
 
     // Log the incoming request
     logger.info(
@@ -1517,13 +1346,22 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
     user.streakRewards += allowedPoints
     user.balanceRewards += allowedPoints
 
+    // Update the last SOS reward value
+    for(let i=user.streak.multiStreak.streakOfStreakRewards.length - 1;i>=0;i--){
+      console.log("inisde for loop lastSOSReward update");
+      console.log(user.streak.multiStreak.streakOfStreakRewards);
+      console.log(user.streak.multiStreak.streakOfStreakRewards.length);
+      console.log(user.streak.multiStreak.streakOfStreakRewards[i]);
+      if(user.streak.multiStreak.streakOfStreakRewards[i]!=0){
+        console.log("inisde lastSOSReward update");
+        user.streak.multiStreak.lastSOSReward = user.streak.multiStreak.streakOfStreakRewards[i];
+      }
+    }
+
     // Reset streak of streak rewards only for the claimed amount
     user.streak.multiStreak.streakOfStreakRewards.fill(0)
-
-    // Update the last SOS reward value
-    user.streak.multiStreak.lastSOSReward = allowedPoints
-
-    await updateLevel(user);
+    
+    // await updateLevel(user);
     await user.save()
 
     // Save the reward record
@@ -1558,7 +1396,6 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
 
 const unClaimedStreakRewardsClaim = async user => {
   try {
-    const currentDate = new Date()
     const unClaimedLoginReward = Number(
       user.streak.loginStreak.unClaimedLoginStreakReward
     )
@@ -1596,6 +1433,8 @@ const unClaimedStreakRewardsClaim = async user => {
       user.totalRewards += rewardAmount
       // add to streak reward of users
       user.streakRewards += rewardAmount
+      // add to balancerewards
+      user.balanceRewards += rewardAmount;
 
       user.streak.loginStreak.unClaimedLoginStreakReward = 0
       user.streak.watchStreak.unClaimedWatchStreakReward = 0
@@ -1615,274 +1454,6 @@ const unClaimedStreakRewardsClaim = async user => {
   }
 }
 
-const updateClaimedLoginDaysArray = async (req, res, next) => {
-  try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-    const { telegramId, claimedDayArray } = decryptedData
-
-    // Log the incoming request
-    logger.info(`Updating claimedLoginDays array for telegramId: ${telegramId}`)
-
-    const user = await User.findOne({ telegramId })
-    if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
-    }
-
-    // Validate claimedDayArray length if needed
-    if (!Array.isArray(claimedDayArray) || claimedDayArray.length !== 7) {
-      logger.warn(`Invalid claimed login array for telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Invalid claimed login array' })
-    }
-
-    // Update the claimedLoginDays array
-    user.streak.claimedLoginDays = claimedDayArray
-
-    // Save the updated user document
-    await user.save()
-
-    // Log the successful update
-    logger.info(
-      `claimedLoginDays array updated successfully for telegramId: ${telegramId}`
-    )
-
-    // Send success response
-    res.status(200).json({
-      message: 'claimedLoginDays array updated successfully',
-      claimedLoginDays: user.streak.claimedLoginDays
-    })
-  } catch (err) {
-    // Log the error
-    logger.error(
-      `An error occurred while updating claimedLoginDays array for telegramId: ${telegramId}. Error: ${err.message}`
-    )
-
-    // Pass the error to the next middleware
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
-  }
-}
-
-const updateClaimedWatchDaysArray = async (req, res, next) => {
-  try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-
-    const { telegramId, claimedDayArray } = decryptedData
-
-    // Log the incoming request
-    logger.info(`Updating claimedWatchDays array for telegramId: ${telegramId}`)
-
-    const user = await User.findOne({ telegramId })
-    if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
-    }
-
-    // Validate claimedDayArray length if needed
-    if (!Array.isArray(claimedDayArray) || claimedDayArray.length !== 7) {
-      logger.warn(`Invalid claimed watch array for telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Invalid claimed watch array' })
-    }
-
-    // Update the claimedWatchDays array
-    user.streak.claimedWatchDays = claimedDayArray
-
-    // Save the updated user document
-    await user.save()
-
-    // Log the successful update
-    logger.info(
-      `claimedWatchDays array updated successfully for telegramId: ${telegramId}`
-    )
-
-    res.status(200).json({
-      message: 'claimedWatchDays array updated successfully',
-      claimedWatchDays: user.streak.claimedWatchDays
-    })
-  } catch (err) {
-    logger.error(
-      `An error occurred while updating claimedWatchDays array for telegramId: ${telegramId}. Error: ${err.message}`
-    )
-
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
-  }
-}
-
-const updateClaimedReferDaysArray = async (req, res, next) => {
-  try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-
-    const { telegramId, claimedDayArray } = decryptedData
-
-    // Log the incoming request
-    logger.info(`Updating claimedReferDays array for telegramId: ${telegramId}`)
-
-    const user = await User.findOne({ telegramId })
-    if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
-    }
-
-    // Validate claimedDayArray length if needed
-    if (!Array.isArray(claimedDayArray) || claimedDayArray.length !== 7) {
-      logger.warn(`Invalid claimed refer array for telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Invalid claimed refer array' })
-    }
-
-    // Update the claimedReferDays array
-    user.streak.claimedReferDays = claimedDayArray
-
-    // Save the updated user document
-    await user.save()
-
-    // Log the successful update
-    logger.info(
-      `claimedReferDays array updated successfully for telegramId: ${telegramId}`
-    )
-
-    res.status(200).json({
-      message: 'claimedReferDays array updated successfully',
-      claimedReferDays: user.streak.claimedReferDays
-    })
-  } catch (err) {
-    logger.error(
-      `An error occurred while updating claimedReferDays array for telegramId: ${telegramId}. Error: ${err.message}`
-    )
-
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
-  }
-}
-
-const updateClaimedTaskDaysArray = async (req, res, next) => {
-  try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-
-    const { telegramId, claimedDayArray } = decryptedData
-
-    logger.info(`Updating claimedTaskDays array for telegramId: ${telegramId}`)
-
-    const user = await User.findOne({ telegramId })
-    if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
-    }
-
-    // Validate claimedDayArray length if needed
-    if (!Array.isArray(claimedDayArray) || claimedDayArray.length !== 7) {
-      logger.warn(`Invalid claimed task array for telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Invalid claimed task array' })
-    }
-
-    // Update the claimedTaskDays array
-    user.streak.claimedTaskDays = claimedDayArray
-
-    await user.save()
-
-    // Log the successful update
-    logger.info(
-      `claimedTaskDays array updated successfully for telegramId: ${telegramId}`
-    )
-
-    res.status(200).json({
-      message: 'claimedTaskDays array updated successfully',
-      claimedTaskDays: user.streak.claimedTaskDays
-    })
-  } catch (err) {
-    logger.error(
-      `An error occurred while updating claimedTaskDays array for telegramId: ${telegramId}. Error: ${err.message}`
-    )
-
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
-  }
-}
-
-const updateClaimedMultiDaysArray = async (req, res, next) => {
-  try {
-    const { encryptedData, iv } = req.body
-    if (!encryptedData || !iv) {
-      return res.status(400).json({ message: 'Missing encrypted data or IV' })
-    }
-    const decryptedData = JSON.parse(decryptedDatas(encryptedData, iv)) // Ensure decryptedData is parsed JSON
-
-    const { telegramId, claimedDayArray } = decryptedData
-
-    // Log the incoming request
-    logger.info(`Updating claimedMultiDays array for telegramId: ${telegramId}`)
-
-    const user = await User.findOne({ telegramId })
-    if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
-    }
-
-    // Validate claimedDayArray length if needed
-    if (!Array.isArray(claimedDayArray) || claimedDayArray.length !== 7) {
-      logger.warn(`Invalid claimed multi array for telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Invalid claimed multi array' })
-    }
-
-    // Update the claimedMultiDays array
-    user.streak.claimedMultiDays = claimedDayArray
-
-    await user.save()
-
-    logger.info(
-      `claimedMultiDays array updated successfully for telegramId: ${telegramId}`
-    )
-
-    res.status(200).json({
-      message: 'claimedMultiDays array updated successfully',
-      claimedMultiDays: user.streak.claimedMultiDays
-    })
-  } catch (err) {
-    // Log the error
-    logger.error(
-      `An error occurred while updating claimedMultiDays array for telegramId: ${telegramId}. Error: ${err.message}`
-    )
-
-    res.status(500).json({
-      message: 'Something went wrong'
-    });
-  
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
-  }
-}
 
 const userStreaks = async (req, res, next) => {
   try {
@@ -1924,6 +1495,10 @@ const userStreaks = async (req, res, next) => {
 
 module.exports = {
   streak,
+  calculateLoginStreak,
+  calculateWatchStreak,
+  calculateReferStreak,
+  calculateTaskStreak,
   streakOfStreak,
   loginStreakRewardClaim,
   watchStreakRewardClaim,
@@ -1931,10 +1506,5 @@ module.exports = {
   taskStreakRewardClaim,
   multiStreakRewardClaim,
   streakOfStreakRewardClaim,
-  updateClaimedLoginDaysArray,
-  updateClaimedWatchDaysArray,
-  updateClaimedReferDaysArray,
-  updateClaimedTaskDaysArray,
-  updateClaimedMultiDaysArray,
   userStreaks
 }

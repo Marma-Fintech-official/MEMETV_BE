@@ -138,6 +138,12 @@ const userSchema = mongoose.Schema(
             default: 0
           }
         ],
+        loginStreakRewardUnclaimed: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
         unClaimedLoginStreakReward: {
           type: Number,
           default: 0
@@ -153,6 +159,12 @@ const userSchema = mongoose.Schema(
           default: Date.now
         },
         watchStreakReward: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
+        watchStreakRewardUnclaimed: [
           {
             type: Number,
             default: 0
@@ -178,6 +190,12 @@ const userSchema = mongoose.Schema(
             default: 0
           }
         ],
+        referStreakRewardUnclaimed: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
         unClaimedReferStreakReward: {
           type: Number,
           default: 0
@@ -198,6 +216,12 @@ const userSchema = mongoose.Schema(
             default: 0
           }
         ],
+        taskStreakRewardUnclaimed: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
         unClaimedTaskStreakReward: {
           type: Number,
           default: 0
@@ -213,6 +237,12 @@ const userSchema = mongoose.Schema(
           default: Date.now
         },
         multiStreakReward: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
+        multiStreakRewardUnclaimed: [
           {
             type: Number,
             default: 0
@@ -240,23 +270,6 @@ const userSchema = mongoose.Schema(
           type: Number,
           default: 0
         }
-      },
-      claimedLoginDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
-      claimedWatchDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
-      claimedReferDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
-      claimedTaskDays: { type: [Boolean], default: () => Array(7).fill(false) },
-      claimedMultiDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
       },
       startDay: {
         type: Number,
