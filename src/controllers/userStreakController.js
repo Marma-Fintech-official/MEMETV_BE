@@ -14,7 +14,7 @@ const {
 } = require('../helpers/constants');
 const {decryptedDatas} = require('../helpers/Decrypt');
 const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
-const { updateLevel } = require('../controllers/userController');
+//const { updateLevel } = require('../controllers/userController');
 require('dotenv').config()
 const TOTALREWARDS_LIMIT = 21000000000;
 

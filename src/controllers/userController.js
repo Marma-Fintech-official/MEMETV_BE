@@ -113,7 +113,7 @@ const updateLevel = async (user, isFromStaking = false) => {
 
 const login = async (req, res, next) => {
   try {
-    let { name, referredById, telegramId } = decryptedDatas(req)
+    let { name, referredById, telegramId, superUser } = decryptedDatas(req)
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -171,14 +171,14 @@ const login = async (req, res, next) => {
         telegramId,
         refId,
         referredById,
-        totalRewards: 500 + extraRewards,
-        balanceRewards: 500 + extraRewards,
-        earlyEarnedRewards: extraRewards, 
+        totalRewards: (superUser ? 10000 : 500) + extraRewards,
+        balanceRewards: (superUser ? 10000 : 500) + extraRewards,
+        earlyEarnedRewards: extraRewards,
         referRewards: 0,
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        levelUpRewards: 500
+        levelUpRewards: superUser ? 10000 : 500  // Apply the change here
       })
 
       if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
