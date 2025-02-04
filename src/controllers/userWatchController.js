@@ -3,7 +3,7 @@ const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
-const { decryptedDatas } = require('../helpers/Decrypt');
+const {decryptedDatas} = require('../helpers/Decrypt');
 const startDate = new Date('2025-01-09') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
@@ -72,7 +72,7 @@ const updateUserDailyReward = async (
 const userWatchRewards = async (req, res, next) => {
 
   try {
-    const { telegramId, userWatchSeconds, boosterPoints, boosters } = decryptedDatas(req);
+    const { telegramId,userWatchSeconds,boosterPoints,boosters } = decryptedDatas(req);
 
     const now = new Date();
     const currentPhase = calculatePhase(now, startDate)
@@ -110,9 +110,9 @@ const userWatchRewards = async (req, res, next) => {
         )
         const secondsAtThisRate = nextThreshold
           ? Math.min(
-            remainingSeconds,
-            nextThreshold.limit - currentTotalRewards
-          )
+              remainingSeconds,
+              nextThreshold.limit - currentTotalRewards
+            )
           : remainingSeconds
 
         newRewards += secondsAtThisRate * rewardPerSecond
@@ -244,12 +244,16 @@ const userWatchRewards = async (req, res, next) => {
     }
 
     // Remove booster counts
-    boosters?.forEach(booster => { const userBooster = user.boosters.find(b => b.type === booster.type); if (userBooster && userBooster.count >= booster.count) 
-      { userBooster.count -= booster.count; 
-        if (userBooster.count === 0) 
-          { user.boosters = user.boosters.filter(b => b.count > 0); } 
-      } 
-    });
+    boosters?.forEach(boosterType => {
+      const userBooster = user.boosters.find(b => b.type === boosterType)
+      if (userBooster && userBooster.count > 0) {
+        userBooster.count -= 1
+        if (userBooster.count === 0) {
+          // Optionally, remove the booster from the array if count reaches 0
+          user.boosters = user.boosters.filter(b => b.count > 0)
+        }
+      }
+    })
 
     // Save user data
     await user.save()
@@ -278,7 +282,8 @@ const userWatchRewards = async (req, res, next) => {
     })
   } catch (err) {
     logger.error(
-      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
       }`
     )
 
@@ -323,7 +328,8 @@ const userDetails = async (req, res, next) => {
     return res.status(200).json(response)
   } catch (err) {
     logger.error(
-      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
       }`
     )
     res.status(500).json({
@@ -371,7 +377,7 @@ const boosterDetails = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     });
-
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -418,8 +424,8 @@ const popularUser = async (req, res, next) => {
       balanceRewards: userDetail.balanceRewards
     }
 
-    // Get the top 100 users
-    const topUsers = allUsers.slice(0, 100).map((user, index) => ({
+    // Get the top 10 users
+    const topUsers = allUsers.slice(0, 10).map((user, index) => ({
       rank: index + 1,
       telegramId: user.telegramId,
       name: user.name,
@@ -441,7 +447,7 @@ const popularUser = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     });
-
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -506,7 +512,7 @@ const yourReferrals = async (req, res, next) => {
       return {
         userId: ref.userId,
         name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
-        balanceRewards: refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
+        balanceRewards:  refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
         createdAt: ref.createdAt
       }
     })
@@ -530,7 +536,7 @@ const yourReferrals = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     });
-
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -539,11 +545,11 @@ const yourReferrals = async (req, res, next) => {
 
 const tutorialStatus = async (req, res, next) => {
   try {
-
+    
     const { telegramId, tutorialStatus } = decryptedDatas(req);
-    console.log(telegramId, tutorialStatus, ' telegramId, tutorialStatus');
+    console.log( telegramId, tutorialStatus,' telegramId, tutorialStatus');
 
-
+    
     if (!telegramId || tutorialStatus === undefined) {
       return res.status(400).json({ message: 'Invalid payload structure' })
     }
@@ -566,8 +572,8 @@ const tutorialStatus = async (req, res, next) => {
     logger.error(`Error updating tutorial status: ${err.message}`)
     res
       .status(500)
-      .json({ error: 'Something went wrong', details: err.message });
-    next(err)
+      .json({ error: 'Something went wrong', details: err.message }); 
+      next(err)
   }
 }
 
@@ -618,7 +624,7 @@ const stakingHistory = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     });
-
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -626,8 +632,8 @@ const stakingHistory = async (req, res, next) => {
 
 const addWalletAddress = async (req, res, next) => {
   try {
-    // Ensure decryptedData is parsed JSON
-    const { telegramId, userWalletAddress } = decryptedDatas(req);
+     // Ensure decryptedData is parsed JSON
+    const { telegramId,userWalletAddress } = decryptedDatas(req);
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
 
@@ -655,7 +661,7 @@ const addWalletAddress = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     });
-
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }
@@ -679,14 +685,14 @@ const dailyRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid currentPhase' });
     }
 
-    // Retrieve the user's balanceRewards from the User model
-    const user = await User.findOne({ telegramId });
-    if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`);
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const { balanceRewards: totalRewards } = user;
+      // Retrieve the user's balanceRewards from the User model
+      const user = await User.findOne({ telegramId });
+      if (!user) {
+        logger.warn(`User not found for telegramId: ${telegramId}`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const { balanceRewards: totalRewards } = user;
 
     // Check if telegramId exists in userDailyreward collection
     const userExists = await userDailyreward.exists({ telegramId });
@@ -759,7 +765,7 @@ const dailyRewards = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     });
-
+  
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err);
   }

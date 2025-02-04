@@ -9,6 +9,9 @@ const cookieParser = require('cookie-parser')
 const TelegramBot = require('node-telegram-bot-api')
 const logger = require('./src/helpers/logger') // Import the custom logger
 require('dotenv').config()
+const {generateUserJson} = require('./src/earlyEarnedrewards/storeEarlyReward');
+const cron = require('node-cron') // Add cron for scheduling tasks
+
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
@@ -97,11 +100,31 @@ if (cluster.isMaster) {
   })
   app.use(limiter);
 
+  // Store a reference to the cron job
+  const scheduledJob = cron.schedule('34 12 * * *', () => {
+    logger.info('Running cron job to determine winners and lose...')
+    generateUserJson();
+  })
+
+  // Stop the cron job after the end date
+  const stopCronJob = async () => {
+    const currentDate = new Date()
+    const endDate = new Date('2025-02-02T23:59:59Z')
+
+    if (currentDate > endDate) {
+      scheduledJob.stop() // Stop the specific cron job
+      logger.info('Cron job stopped as the end date has been reached.')
+    }
+  }
+
+  // Call stopCronJob to check if it should stop (can be run on server startup)
+  stopCronJob()
+
   // Listen on the specified port
   const port = process.env.PORT || 8888
   app.listen(port, '0.0.0.0', () => {
     logger.info(
       `🏖️ 🔥  Worker ${process.pid} is listening on port ${port} 🏖️ 🔥 `
-    )
-  })
+    );
+  });
 }

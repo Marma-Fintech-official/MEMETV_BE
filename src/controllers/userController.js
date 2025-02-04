@@ -17,6 +17,8 @@ const {
 } = require('../helpers/constants');
 
 const TOTALREWARDS_LIMIT = 21000000000;
+const fs = require('fs');
+const path = require('path');
 
 // Function to generate a 5-character alphanumeric identifier
 const generateRefId = () => {
@@ -67,6 +69,12 @@ const updateLevel = async (user, isFromStaking = false) => {
       user.levelUpRewards = (user.levelUpRewards || 0) + actualLevelUpPoints
       user.level = newLevel
     }
+    console.log("Updated User Data Before Saving:", {
+      levelUpRewards: user.levelUpRewards,
+      balanceRewards: user.balanceRewards,
+      totalRewards: user.totalRewards,
+    });
+
     newLevelUpPoints = actualLevelUpPoints // Use actualLevelUpPoints for further logic
   }
   const today = new Date()
@@ -111,7 +119,7 @@ const updateLevel = async (user, isFromStaking = false) => {
 
 const login = async (req, res, next) => {
   try {
-    let { name, referredById, telegramId } = decryptedDatas(req)
+    let { name, referredById, telegramId, superUser } = decryptedDatas(req)
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -133,6 +141,18 @@ const login = async (req, res, next) => {
     }
 
     let totalDailyReward = 0
+
+    // Load userData.json
+    const userDataPath = path.join(__dirname, '../earlyEarnedrewards/userData.json');
+    let userData = [];
+
+    if (fs.existsSync(userDataPath)) {
+      userData = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
+    }
+    // Find user in userData.json
+    const userInData = userData.find((u) => u.telegramId === telegramId);
+    const extraRewards = userInData ? userInData.balanceRewards : 0;
+
 
     if (!user) {
       // Before creating a new user, check if the rewards limit is exceeded
@@ -157,14 +177,17 @@ const login = async (req, res, next) => {
         telegramId,
         refId,
         referredById,
-        totalRewards: 500,
-        balanceRewards: 500,
+        totalRewards: (superUser ? 10000 : 500) + extraRewards,
+        balanceRewards: (superUser ? 10000 : 500) + extraRewards,
+        earlyEarnedRewards: extraRewards,
         referRewards: 0,
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        levelUpRewards: 500
+        levelUpRewards: superUser ? 10000 : 500  // Apply the change here
       })
+
+      updateLevel(user)
 
       if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
         const lastLoginTime = user.lastLogin
@@ -178,7 +201,6 @@ const login = async (req, res, next) => {
         // Convert the difference from milliseconds to days
         const differenceInDays =
           Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
-        // console.log(user, login, differenceInDays,"user, login, differenceInDaysuser, login, differenceInDaysuser, login, differenceInDays");
         const login = await calculateLoginStreak(
           user,
           lastLoginTime,
@@ -196,13 +218,14 @@ const login = async (req, res, next) => {
       const newLevelUpReward = new userReward({
         category: 'levelUp',
         date: today,
-        rewardPoints: 500,
+        rewardPoints: (superUser ? 10000 : 500),
         userId: user._id,
         telegramId: user.telegramId
       })
       await newLevelUpReward.save()
 
-      totalDailyReward += 500
+      totalDailyReward = superUser ? 10000 : (500 + extraRewards);
+
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -385,7 +408,6 @@ const login = async (req, res, next) => {
         await user.save()
       }
     }
-
     // Update daily rewards in userDailyreward model
     let dailyReward = await userDailyreward.findOne({
       userId: user._id,
@@ -404,7 +426,6 @@ const login = async (req, res, next) => {
       })
       await dailyReward.save()
     }
-
 
     updateLevel(user)
 
