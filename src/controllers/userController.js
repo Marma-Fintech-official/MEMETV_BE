@@ -201,7 +201,6 @@ const login = async (req, res, next) => {
         // Convert the difference from milliseconds to days
         const differenceInDays =
           Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
-        // console.log(user, login, differenceInDays,"user, login, differenceInDaysuser, login, differenceInDaysuser, login, differenceInDays");
         const login = await calculateLoginStreak(
           user,
           lastLoginTime,
@@ -219,13 +218,14 @@ const login = async (req, res, next) => {
       const newLevelUpReward = new userReward({
         category: 'levelUp',
         date: today,
-        rewardPoints: 500,
+        rewardPoints: (superUser ? 10000 : 500),
         userId: user._id,
         telegramId: user.telegramId
       })
       await newLevelUpReward.save()
 
-      totalDailyReward += 500 + extraRewards;
+      totalDailyReward = superUser ? 10000 : (500 + extraRewards);
+
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -408,7 +408,6 @@ const login = async (req, res, next) => {
         await user.save()
       }
     }
-
     // Update daily rewards in userDailyreward model
     let dailyReward = await userDailyreward.findOne({
       userId: user._id,
@@ -427,7 +426,6 @@ const login = async (req, res, next) => {
       })
       await dailyReward.save()
     }
-
 
     updateLevel(user)
 
