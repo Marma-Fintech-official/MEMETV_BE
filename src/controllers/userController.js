@@ -69,6 +69,12 @@ const updateLevel = async (user, isFromStaking = false) => {
       user.levelUpRewards = (user.levelUpRewards || 0) + actualLevelUpPoints
       user.level = newLevel
     }
+    console.log("Updated User Data Before Saving:", {
+      levelUpRewards: user.levelUpRewards,
+      balanceRewards: user.balanceRewards,
+      totalRewards: user.totalRewards,
+    });
+
     newLevelUpPoints = actualLevelUpPoints // Use actualLevelUpPoints for further logic
   }
   const today = new Date()
@@ -180,6 +186,8 @@ const login = async (req, res, next) => {
         level: 1,
         levelUpRewards: superUser ? 10000 : 500  // Apply the change here
       })
+
+      updateLevel(user)
 
       if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
         const lastLoginTime = user.lastLogin
