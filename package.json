@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "promo": "node ./src/PromoCodes/promoGenerator.js"
+    "promo": "node ./src/PromoCodes/promoGenerator.js",
+    "sheets": "node ./src/PromoCodes/promoCodeToGoogleSheets.js"
   },
   "author": "paviesh",
   "license": "ISC",
@@ -20,6 +21,7 @@
     "errors": "^0.3.0",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
+    "googleapis": "^144.0.0",
     "helmet": "^7.1.0",
     "http-proxy-middleware": "^3.0.3",
     "joi": "^17.13.3",
