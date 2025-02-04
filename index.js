@@ -12,7 +12,7 @@ require('dotenv').config()
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token,)
+  const bot = new TelegramBot(token, {polling : true});
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
@@ -96,15 +96,6 @@ if (cluster.isMaster) {
     max: 1000 // Limit each IP to 1000 requests per window
   })
   app.use(limiter);
-
-const { encryptMessage } = require('./src/helpers/crypto')
-const {encryptedData,ivString } = encryptMessage(JSON.stringify({
-      "telegramId" : "test",
-      "index" : 0
-
-  }));
-   console.log("encryptedData",encryptedData);
-   console.log("ivString",ivString);
 
   // Listen on the specified port
   const port = process.env.PORT || 8888
