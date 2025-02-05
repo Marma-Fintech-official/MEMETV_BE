@@ -10,6 +10,12 @@ const {
   milestones
 } = require('../helpers/constants')
 const { decryptedDatas } = require('../helpers/Decrypt')
+const { calculateLoginStreak, calculateTaskStreak } = require("../controllers/userStreakController");
+const {
+  calculateDayDifference,
+  distributionStartDate,
+} = require('../helpers/constants');
+
 const TOTALREWARDS_LIMIT = 21000000000;
 const fs = require('fs');
 const path = require('path');
@@ -174,6 +180,30 @@ const login = async (req, res, next) => {
         level: 1,
         levelUpRewards: 500
       })
+
+      if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
+        const lastLoginTime = user.lastLogin
+        let currentDate = new Date()
+        const currentDay = currentDate.toISOString().split('T')[0]
+        currentDate = new Date(currentDay)
+        // Calculate the difference in milliseconds
+        const differenceInTime = Math.abs(
+          currentDate.getTime() - distributionStartDate.getTime()
+        )
+        // Convert the difference from milliseconds to days
+        const differenceInDays =
+          Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
+        // console.log(user, login, differenceInDays,"user, login, differenceInDaysuser, login, differenceInDaysuser, login, differenceInDays");
+        const login = await calculateLoginStreak(
+          user,
+          lastLoginTime,
+          differenceInDays
+        )
+        logger.info(`Login Streak reward claimed successfully for user ${telegramId}`)
+        await user.save()
+      } else {
+        logger.info(`Login Streak reward already claimed for user ${telegramId}`)
+      }
 
       await user.save()
 
@@ -390,7 +420,33 @@ const login = async (req, res, next) => {
       await dailyReward.save()
     }
 
+
     updateLevel(user)
+
+    //login streak calculation logic
+    if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
+      const lastLoginTime = user.lastLogin
+      let currentDate = new Date()
+      const currentDay = currentDate.toISOString().split('T')[0]
+      currentDate = new Date(currentDay)
+      // Calculate the difference in milliseconds
+      const differenceInTime = Math.abs(
+        currentDate.getTime() - distributionStartDate.getTime()
+      )
+      // Convert the difference from milliseconds to days
+      const differenceInDays =
+        Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
+      // console.log(user, login, differenceInDays,"user, login, differenceInDaysuser, login, differenceInDaysuser, login, differenceInDays");
+      const login = await calculateLoginStreak(
+        user,
+        lastLoginTime,
+        differenceInDays
+      )
+      logger.info(`Login Streak reward claimed successfully for user ${telegramId}`)
+      await user.save()
+    } else {
+      logger.info(`Login Streak reward already claimed for user ${telegramId}`)
+    }
 
     res.status(201).json({
       message: 'User logged in successfully',
@@ -576,6 +632,25 @@ const userGameRewards = async (req, res, next) => {
       logger.info(
         `Created new userDailyreward for user ${telegramId} on ${currentDateString}`
       )
+    }
+    if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) == 0) {
+      let currentDate = new Date()
+      const currentDay = currentDate.toISOString().split('T')[0]
+      currentDate = new Date(currentDay)
+      // Calculate the difference in milliseconds
+      const differenceInTime = Math.abs(
+        currentDate.getTime() - distributionStartDate.getTime()
+      )
+      // Convert the difference from milliseconds to days
+      const differenceInDays =
+        Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
+      // Calculate streaks
+      const login = await calculateDayDifference(user.streak.loginStreak.loginStreakDate) == 0
+      // console.log(user, login, differenceInDays,"user, login, differenceInDaysuser, login, differenceInDaysuser, login, differenceInDays");
+      const game = await calculateTaskStreak(user, login, differenceInDays);
+      logger.info(`Game Streak reward claimed successfully for user ${telegramId}`)
+    } else {
+      logger.info(`Game Streak reward already claimed for user ${telegramId}`)
     }
 
     await user.save()

@@ -244,12 +244,7 @@ const userWatchRewards = async (req, res, next) => {
     }
 
     // Remove booster counts
-    boosters?.forEach(booster => { const userBooster = user.boosters.find(b => b.type === booster.type); if (userBooster && userBooster.count >= booster.count) 
-      { userBooster.count -= booster.count; 
-        if (userBooster.count === 0) 
-          { user.boosters = user.boosters.filter(b => b.count > 0); } 
-      } 
-    });
+    boosters?.forEach(booster => { const userBooster = user.boosters.find(b => b.type === booster.type); if (userBooster && userBooster.count >= booster.count) { userBooster.count -= booster.count; if (userBooster.count === 0) { user.boosters = user.boosters.filter(b => b.count > 0); } } });
 
     // Save user data
     await user.save()

@@ -70,7 +70,7 @@ if (cluster.isMaster) {
     })
     .then(() => {
       logger.info(
-        '*********🛡️ 🔍  Successfully Connected to MongoDB 🛡️ 🔍 **********'
+        '*********🛡️ 🔍  Successfully Connected to MongoDB Stagging🛡️ 🔍 **********'
       )
     })
     .catch(err => {
@@ -90,7 +90,7 @@ if (cluster.isMaster) {
   app.use(router)
 
   app.get('/', (req, res) => {
-    res.send(' ***🔥🔥 TheMemeTv Backend Server is Running 🔥🔥*** ')
+    res.send(' ***🔥🔥 TheMemeTv Backend Server 2 is Running 🔥🔥*** ')
   })
 
   // Rate limiter
