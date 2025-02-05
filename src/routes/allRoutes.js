@@ -7,5 +7,6 @@ router.use('/', require('./userWatchRoute'))
 router.use('/', require('./userStreakRoute'))
 router.use('/', require('./promoCodeRoute'))
 router.use('/', require('./cronRoute'))
+router.use('/', require('../../src/admin/routes/adminRoute'))
 
 module.exports = router

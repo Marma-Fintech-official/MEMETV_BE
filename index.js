@@ -11,6 +11,8 @@ const logger = require('./src/helpers/logger') // Import the custom logger
 require('dotenv').config()
 const {generateUserJson} = require('./src/earlyEarnedrewards/storeEarlyReward');
 const cron = require('node-cron') // Add cron for scheduling tasks
+ // Set up routes
+ const adminRouter = require('./src/admin/routes/allRoute')
 
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
@@ -87,7 +89,10 @@ if (cluster.isMaster) {
 
   // Set up routes
   const router = require('./src/routes/allRoutes')
-  app.use(router)
+  app.use(router);
+  
+  app.use(adminRouter);
+
 
   app.get('/', (req, res) => {
     res.send(' ***🔥🔥 TheMemeTv Backend Server 2 is Running 🔥🔥*** ')
