@@ -187,7 +187,7 @@ const login = async (req, res, next) => {
         levelUpRewards: superUser ? 10000 : 500, // Apply the change here
       });
 
-      updateLevel(user);
+      await updateLevel(user);
 
       if (
         (await calculateDayDifference(
@@ -435,7 +435,7 @@ const login = async (req, res, next) => {
       await dailyReward.save();
     }
 
-    updateLevel(user);
+    await updateLevel(user);
 
     //login streak calculation logic
     if (
