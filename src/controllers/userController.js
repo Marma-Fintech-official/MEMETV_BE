@@ -537,7 +537,7 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = req.body
+    const { telegramId, boosters, gamePoints } = decryptedDatas(req);
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
@@ -762,7 +762,7 @@ const userGameRewards = async (req, res, next) => {
 
 const userTaskRewards = async (req, res, next) => {
   try {
-    const { telegramId, taskPoints, channel } = req.body
+    const { telegramId, taskPoints, channel } = decryptedDatas(req);
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`

@@ -3,18 +3,19 @@ const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const { levelUpBonuses, thresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
-const {decryptedDatas} = require('../helpers/Decrypt');
+const { decryptedDatas } = require('../helpers/Decrypt')
 const startDate = new Date('2025-01-09') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
-  const oneDay = 24 * 60 * 60 * 1000;
-  const daysDifference = Math.floor((currentDate - startDate) / oneDay);
-  if (daysDifference < 0) return 0; // Before start date
-  return Math.ceil(daysDifference / 7);
+  const oneDay = 24 * 60 * 60 * 1000
+  const daysDifference = Math.floor((currentDate - startDate) / oneDay)
+  if (daysDifference < 0) return 0 // Before start date
+  return Math.ceil(daysDifference / 7)
 }
 
-const TOTALREWARDS_LIMIT = 21000000000;
-
+const TOTALREWARDS_LIMIT = 21000000000
+const pausedRewardStartDate = new Date('2025-02-02')
+const pausedRewardEndDate = new Date('2025-02-04')
 
 const updateUserDailyReward = async (
   userId,
@@ -23,10 +24,18 @@ const updateUserDailyReward = async (
   levelUpRewards = 0
 ) => {
   const now = new Date()
-  const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+  // Strip out time from all dates by setting time to midnight (00:00:00)
+  now.setHours(0, 0, 0, 0)
+  pausedRewardStartDate.setHours(0, 0, 0, 0)
+  pausedRewardEndDate.setHours(0, 0, 0, 0)
+
+  // Check if the current date is within the paused reward period
+  const isPausedRewardPeriod =
+    now >= pausedRewardStartDate && now <= pausedRewardEndDate
 
   try {
     // Check if a daily reward record already exists for today
+    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
     let dailyReward = await userDailyreward.findOne({
       userId: userId,
       telegramId: telegramId,
@@ -41,6 +50,12 @@ const updateUserDailyReward = async (
     if (dailyReward) {
       // If a record exists, update the dailyEarnedRewards including levelUpRewards
       dailyReward.dailyEarnedRewards += totalDailyRewards
+
+      // If within paused period, add to pausedRewards instead
+      if (isPausedRewardPeriod) {
+        dailyReward.pausedRewards += totalDailyRewards
+      }
+
       await dailyReward.save()
       logger.info(
         `Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}`
@@ -51,8 +66,10 @@ const updateUserDailyReward = async (
         userId,
         telegramId,
         dailyEarnedRewards: totalDailyRewards,
+        pausedRewards: isPausedRewardPeriod ? totalDailyRewards : 0, // Add rewards to pausedRewards if within paused period
         createdAt: new Date(currentDateString)
       })
+
       await dailyReward.save()
       logger.info(
         `Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${totalDailyRewards}`
@@ -64,19 +81,27 @@ const updateUserDailyReward = async (
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
+    })
     next(err)
   }
 }
 
 const userWatchRewards = async (req, res, next) => {
-
   try {
-    const { telegramId,userWatchSeconds,boosterPoints,boosters } = decryptedDatas(req);
+    const { telegramId, userWatchSeconds, boosterPoints, boosters } = req.body
 
-    const now = new Date();
+    const now = new Date()
     const currentPhase = calculatePhase(now, startDate)
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+
+    // Set the time to the start of the day for comparison
+    now.setHours(0, 0, 0, 0)
+    pausedRewardEndDate.setHours(0, 0, 0, 0)
+
+    // Check if the current date falls within the paused reward period
+    const isPausedRewardPeriod =
+      now >= pausedRewardStartDate && now <= pausedRewardEndDate
+    console.log(isPausedRewardPeriod)
 
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
@@ -150,35 +175,45 @@ const userWatchRewards = async (req, res, next) => {
 
     // Calculate how much of the watchRewards can be added
     const watchRewardsToAdd = Math.min(totalWatchRewards, availableSpace)
-    user.totalRewards += watchRewardsToAdd
-    user.balanceRewards += watchRewardsToAdd
-    user.watchRewards = (user.watchRewards || 0) + watchRewardsToAdd
 
-    // Add a userReward entry for "watch"
-    let watchReward = await userReward.findOne({
-      telegramId,
-      date: currentDateString,
-      category: 'watch'
-    })
-
-    if (watchReward) {
-      watchReward.rewardPoints += watchRewardsToAdd
-      await watchReward.save()
+    // If within the paused reward period, add to pausedRewards
+    if (isPausedRewardPeriod) {
+      user.pausedRewards = (user.pausedRewards || 0) + watchRewardsToAdd
       logger.info(
-        `Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchRewardsToAdd}`
+        `Paused rewards updated for telegramId: ${telegramId} on ${currentDateString}, pausedRewards: ${user.pausedRewards}`
       )
     } else {
-      watchReward = new userReward({
-        category: 'watch',
+      // Otherwise, add to regular reward fields
+      user.totalRewards += watchRewardsToAdd
+      user.balanceRewards += watchRewardsToAdd
+      user.watchRewards = (user.watchRewards || 0) + watchRewardsToAdd
+
+      // Add a userReward entry for "watch" - Only for regular periods
+      let watchReward = await userReward.findOne({
+        telegramId,
         date: currentDateString,
-        rewardPoints: watchRewardsToAdd,
-        userId: user._id,
-        telegramId
+        category: 'watch'
       })
-      await watchReward.save()
-      logger.info(
-        `Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchRewardsToAdd}`
-      )
+
+      if (watchReward) {
+        watchReward.rewardPoints += watchRewardsToAdd
+        await watchReward.save()
+        logger.info(
+          `Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchRewardsToAdd}`
+        )
+      } else {
+        watchReward = new userReward({
+          category: 'watch',
+          date: currentDateString,
+          rewardPoints: watchRewardsToAdd,
+          userId: user._id,
+          telegramId
+        })
+        await watchReward.save()
+        logger.info(
+          `Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchRewardsToAdd}`
+        )
+      }
     }
 
     // Level-up logic
@@ -262,13 +297,15 @@ const userWatchRewards = async (req, res, next) => {
       `User rewards and boosters updated successfully for telegramId: ${telegramId}`
     )
 
-    // Call the updateUserDailyReward function to handle daily rewards
-    await updateUserDailyReward(
-      user._id,
-      telegramId,
-      totalWatchRewards,
-      levelUpRewardsToAdd
-    )
+    // Call the updateUserDailyReward function to handle daily rewards only if not in paused period
+    if (!isPausedRewardPeriod) {
+      await updateUserDailyReward(
+        user._id,
+        telegramId,
+        totalWatchRewards,
+        levelUpRewardsToAdd
+      )
+    }
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
@@ -277,6 +314,7 @@ const userWatchRewards = async (req, res, next) => {
       level: user.level,
       levelUpRewards: user.levelUpRewards,
       watchRewards: user.watchRewards,
+      pausedRewards: user.pausedRewards, // Return the paused rewards in the response
       currentPhase: currentPhase,
       boosters: user.boosters
     })
@@ -286,9 +324,10 @@ const userWatchRewards = async (req, res, next) => {
         err.message
       }`
     )
-
+    res.status(500).json({ message: 'Something went wrong' })
   }
 }
+
 
 const userDetails = async (req, res, next) => {
   try {
@@ -334,7 +373,7 @@ const userDetails = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
+    })
     next(err)
   }
 }
@@ -376,10 +415,10 @@ const boosterDetails = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
@@ -446,10 +485,10 @@ const popularUser = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
@@ -491,7 +530,6 @@ const yourReferrals = async (req, res, next) => {
 
     const userIds = paginatedReferenceIds.map(ref => ref.userId)
 
-
     // Find the referenced users and select the required fields
     const referencedUsers = await User.find({ _id: { $in: userIds } }).select(
       'name balanceRewards'
@@ -512,7 +550,7 @@ const yourReferrals = async (req, res, next) => {
       return {
         userId: ref.userId,
         name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
-        balanceRewards:  refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
+        balanceRewards: refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
         createdAt: ref.createdAt
       }
     })
@@ -535,21 +573,18 @@ const yourReferrals = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
-
 const tutorialStatus = async (req, res, next) => {
   try {
-    
-    const { telegramId, tutorialStatus } = decryptedDatas(req);
-    console.log( telegramId, tutorialStatus,' telegramId, tutorialStatus');
+    const { telegramId, tutorialStatus } = decryptedDatas(req)
+    console.log(telegramId, tutorialStatus, ' telegramId, tutorialStatus')
 
-    
     if (!telegramId || tutorialStatus === undefined) {
       return res.status(400).json({ message: 'Invalid payload structure' })
     }
@@ -572,8 +607,8 @@ const tutorialStatus = async (req, res, next) => {
     logger.error(`Error updating tutorial status: ${err.message}`)
     res
       .status(500)
-      .json({ error: 'Something went wrong', details: err.message }); 
-      next(err)
+      .json({ error: 'Something went wrong', details: err.message })
+    next(err)
   }
 }
 
@@ -623,17 +658,17 @@ const stakingHistory = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const addWalletAddress = async (req, res, next) => {
   try {
-     // Ensure decryptedData is parsed JSON
-    const { telegramId,userWalletAddress } = decryptedDatas(req);
+    // Ensure decryptedData is parsed JSON
+    const { telegramId, userWalletAddress } = decryptedDatas(req)
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
 
@@ -660,116 +695,127 @@ const addWalletAddress = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const dailyRewards = async (req, res, next) => {
   try {
-    let { telegramId } = req.params;
-    const { currentPhase = 1 } = req.query;
+    let { telegramId } = req.params
+    const { currentPhase = 1 } = req.query
 
     // Log the incoming request
-    logger.info(`Received request to calculate daily rewards for telegramId: ${telegramId}, currentPhase: ${currentPhase}`);
+    logger.info(
+      `Received request to calculate daily rewards for telegramId: ${telegramId}, currentPhase: ${currentPhase}`
+    )
 
     // Trim leading and trailing spaces
-    telegramId = telegramId.trim();
+    telegramId = telegramId.trim()
 
     // Validate currentPhase
-    const phase = parseInt(currentPhase);
+    const phase = parseInt(currentPhase)
     if (isNaN(phase) || phase <= 0) {
-      logger.warn(`Invalid currentPhase: ${currentPhase}`);
-      return res.status(400).json({ message: 'Invalid currentPhase' });
+      logger.warn(`Invalid currentPhase: ${currentPhase}`)
+      return res.status(400).json({ message: 'Invalid currentPhase' })
     }
 
-      // Retrieve the user's balanceRewards from the User model
-      const user = await User.findOne({ telegramId });
-      if (!user) {
-        logger.warn(`User not found for telegramId: ${telegramId}`);
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      const { balanceRewards: totalRewards } = user;
+    // Retrieve the user's balanceRewards from the User model
+    const user = await User.findOne({ telegramId })
+    if (!user) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    const { balanceRewards: totalRewards } = user
 
     // Check if telegramId exists in userDailyreward collection
-    const userExists = await userDailyreward.exists({ telegramId });
+    const userExists = await userDailyreward.exists({ telegramId })
     if (!userExists) {
-      logger.warn(`No records found for telegramId: ${telegramId}`);
+      logger.warn(`No records found for telegramId: ${telegramId}`)
       return res.status(200).json({
         dailyRewards: [],
         totalRewards,
-        message: `No rewards found for telegramId: ${telegramId}`,
-      });
+        message: `No rewards found for telegramId: ${telegramId}`
+      })
     }
 
     // Calculate the start and end dates for the requested phase
-    const phaseStartDate = new Date(startDate.getTime() + (phase - 1) * 7 * 24 * 60 * 60 * 1000);
-    const phaseEndDate = new Date(phaseStartDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const phaseStartDate = new Date(
+      startDate.getTime() + (phase - 1) * 7 * 24 * 60 * 60 * 1000
+    )
+    const phaseEndDate = new Date(
+      phaseStartDate.getTime() + 7 * 24 * 60 * 60 * 1000
+    )
 
     // Fetch all daily rewards records for the current phase
     const dailyRewardsRecords = await userDailyreward.find({
       telegramId,
-      createdAt: { $gte: phaseStartDate, $lt: phaseEndDate },
-    });
+      createdAt: { $gte: phaseStartDate, $lt: phaseEndDate }
+    })
 
-    logger.info(`Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}, phase: ${currentPhase}`);
+    logger.info(
+      `Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}, phase: ${currentPhase}`
+    )
 
     // Generate the full 7-day range for the current phase
-    const fullPhaseDates = [];
+    const fullPhaseDates = []
     for (let i = 0; i < 7; i++) {
-      const date = new Date(phaseStartDate);
-      date.setDate(date.getDate() + i);
-      fullPhaseDates.push(date.toISOString().split('T')[0]); // Format as YYYY-MM-DD
+      const date = new Date(phaseStartDate)
+      date.setDate(date.getDate() + i)
+      fullPhaseDates.push(date.toISOString().split('T')[0]) // Format as YYYY-MM-DD
     }
 
     // Map existing records into an object keyed by date
     const recordsByDate = dailyRewardsRecords.reduce((acc, record) => {
-      const dateKey = record.createdAt.toISOString().split('T')[0];
-      acc[dateKey] = record;
-      return acc;
-    }, {});
+      const dateKey = record.createdAt.toISOString().split('T')[0]
+      acc[dateKey] = record
+      return acc
+    }, {})
 
     // Process the full range of dates and include missing records with default values
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset the time part
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset the time part
 
-    let totalPhaseRewards = 0;
+    let totalPhaseRewards = 0
 
-    const processedRewards = fullPhaseDates.map((dateKey) => {
+    const processedRewards = fullPhaseDates.map(dateKey => {
       if (recordsByDate[dateKey]) {
         // Use existing record
-        const reward = recordsByDate[dateKey];
-        const stakeButton = today > new Date(reward.createdAt) ? 'enable' : 'disable';
-        return { ...reward.toObject(), stakeButton };
+        const reward = recordsByDate[dateKey]
+        const stakeButton =
+          today > new Date(reward.createdAt) ? 'enable' : 'disable'
+        return { ...reward.toObject(), stakeButton }
       } else {
         // Add default record
         return {
           createdAt: dateKey,
           telegramId,
           dailyEarnedRewards: 0,
-          stakeButton: 'disable',
-        };
+          stakeButton: 'disable'
+        }
       }
-    });
+    })
 
     // Return the response
     return res.status(200).json({
       dailyRewards: processedRewards,
-      totalRewards,
-    });
+      totalRewards
+    })
   } catch (err) {
-    logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);
+    logger.error(
+      `Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`
+    )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
-};
+}
 module.exports = {
   userWatchRewards,
   userDetails,
