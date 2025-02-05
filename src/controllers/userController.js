@@ -10,15 +10,18 @@ const {
   milestones
 } = require('../helpers/constants')
 const { decryptedDatas } = require('../helpers/Decrypt')
-const { calculateLoginStreak, calculateTaskStreak } = require("../controllers/userStreakController");
+const {
+  calculateLoginStreak,
+  calculateTaskStreak
+} = require('../controllers/userStreakController')
 const {
   calculateDayDifference,
-  distributionStartDate,
-} = require('../helpers/constants');
+  distributionStartDate
+} = require('../helpers/constants')
 
-const TOTALREWARDS_LIMIT = 21000000000;
-const fs = require('fs');
-const path = require('path');
+const TOTALREWARDS_LIMIT = 21000000000
+const fs = require('fs')
+const path = require('path')
 
 // Function to generate a 5-character alphanumeric identifier
 const generateRefId = () => {
@@ -69,11 +72,6 @@ const updateLevel = async (user, isFromStaking = false) => {
       user.levelUpRewards = (user.levelUpRewards || 0) + actualLevelUpPoints
       user.level = newLevel
     }
-    console.log("Updated User Data Before Saving:", {
-      levelUpRewards: user.levelUpRewards,
-      balanceRewards: user.balanceRewards,
-      totalRewards: user.totalRewards,
-    });
 
     newLevelUpPoints = actualLevelUpPoints // Use actualLevelUpPoints for further logic
   }
@@ -117,9 +115,67 @@ const updateLevel = async (user, isFromStaking = false) => {
   }
 }
 
+const handlePausedRewards = async (user, pointsToAdd, channel, boosters) => {
+  const now = new Date()
+  const pausedRewardStartDate = new Date('2025-02-02')
+  const pausedRewardEndDate = new Date('2025-02-03')
+
+  if (now >= pausedRewardStartDate && now <= pausedRewardEndDate) {
+    // During the paused reward period, only update pausedRewards
+    user.pausedRewards = Number(user.pausedRewards) || 0
+    user.pausedRewards += pointsToAdd
+
+    // Mark the channel as claimed
+    if (!user.taskRewards) {
+      user.taskRewards = {}
+    }
+    user.taskRewards[channel] = true
+
+    // Update boosters during the paused period
+    if (Array.isArray(boosters) && boosters.length > 0) {
+      const boosterCounts = boosters.reduce((acc, booster) => {
+        acc[booster] = (acc[booster] || 0) + 1
+        return acc
+      }, {})
+
+      user.boosters = user.boosters.map(booster => {
+        if (boosterCounts[booster.type]) {
+          booster.count += boosterCounts[booster.type]
+          delete boosterCounts[booster.type]
+        }
+        return booster
+      })
+
+      for (const [type, count] of Object.entries(boosterCounts)) {
+        user.boosters.push({ type, count })
+      }
+
+      logger.info(`Updated boosters for user ${user.telegramId} during paused rewards`)
+    }
+
+    logger.info(
+      `Rewards are paused. Added ${pointsToAdd} points to pausedRewards for user ${user.telegramId}`
+    )
+
+    // Save user data
+    await user.save()
+
+    return {
+      success: true,
+      message: 'Rewards are paused, added to pausedRewards, and boosters updated',
+      user
+    }
+  }
+
+  // If the date is not in the paused period, return success with no changes
+  return { success: false }
+}
+
+
 const login = async (req, res, next) => {
   try {
-    let { name, referredById, telegramId, superUser } = decryptedDatas(req)
+    // let { name, referredById, telegramId, superUser } = decryptedDatas(req)
+    let { name, referredById, telegramId, superUser } = req.body
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -143,16 +199,18 @@ const login = async (req, res, next) => {
     let totalDailyReward = 0
 
     // Load userData.json
-    const userDataPath = path.join(__dirname, '../earlyEarnedrewards/userData.json');
-    let userData = [];
+    const userDataPath = path.join(
+      __dirname,
+      '../earlyEarnedrewards/userData.json'
+    )
+    let userData = []
 
     if (fs.existsSync(userDataPath)) {
-      userData = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
+      userData = JSON.parse(fs.readFileSync(userDataPath, 'utf8'))
     }
     // Find user in userData.json
-    const userInData = userData.find((u) => u.telegramId === telegramId);
-    const extraRewards = userInData ? userInData.balanceRewards : 0;
-
+    const userInData = userData.find(u => u.telegramId === telegramId)
+    const extraRewards = userInData ? userInData.balanceRewards : 0
 
     if (!user) {
       // Before creating a new user, check if the rewards limit is exceeded
@@ -184,12 +242,17 @@ const login = async (req, res, next) => {
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        levelUpRewards: superUser ? 10000 : 500  // Apply the change here
+        levelUpRewards: superUser ? 10000 : 500 // Apply the change here
       })
 
       updateLevel(user)
 
-      if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
+      if (
+        (await calculateDayDifference(
+          user.streak.loginStreak.loginStreakDate
+        )) != 0 ||
+        user.streak.loginStreak.loginStreakCount == 0
+      ) {
         const lastLoginTime = user.lastLogin
         let currentDate = new Date()
         const currentDay = currentDate.toISOString().split('T')[0]
@@ -206,10 +269,14 @@ const login = async (req, res, next) => {
           lastLoginTime,
           differenceInDays
         )
-        logger.info(`Login Streak reward claimed successfully for user ${telegramId}`)
+        logger.info(
+          `Login Streak reward claimed successfully for user ${telegramId}`
+        )
         await user.save()
       } else {
-        logger.info(`Login Streak reward already claimed for user ${telegramId}`)
+        logger.info(
+          `Login Streak reward already claimed for user ${telegramId}`
+        )
       }
 
       await user.save()
@@ -218,14 +285,13 @@ const login = async (req, res, next) => {
       const newLevelUpReward = new userReward({
         category: 'levelUp',
         date: today,
-        rewardPoints: (superUser ? 10000 : 500),
+        rewardPoints: superUser ? 10000 : 500,
         userId: user._id,
         telegramId: user.telegramId
       })
       await newLevelUpReward.save()
 
-      totalDailyReward = superUser ? 10000 : (500 + extraRewards);
-
+      totalDailyReward = superUser ? 10000 : 500 + extraRewards
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -430,7 +496,11 @@ const login = async (req, res, next) => {
     updateLevel(user)
 
     //login streak calculation logic
-    if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) != 0 || user.streak.loginStreak.loginStreakCount == 0) {
+    if (
+      (await calculateDayDifference(user.streak.loginStreak.loginStreakDate)) !=
+        0 ||
+      user.streak.loginStreak.loginStreakCount == 0
+    ) {
       const lastLoginTime = user.lastLogin
       let currentDate = new Date()
       const currentDay = currentDate.toISOString().split('T')[0]
@@ -448,7 +518,9 @@ const login = async (req, res, next) => {
         lastLoginTime,
         differenceInDays
       )
-      logger.info(`Login Streak reward claimed successfully for user ${telegramId}`)
+      logger.info(
+        `Login Streak reward claimed successfully for user ${telegramId}`
+      )
       await user.save()
     } else {
       logger.info(`Login Streak reward already claimed for user ${telegramId}`)
@@ -476,8 +548,7 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = decryptedDatas(req)
-
+    const { telegramId, boosters, gamePoints } = req.body
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
@@ -507,12 +578,26 @@ const userGameRewards = async (req, res, next) => {
       }
     }
 
+    // Check and handle paused rewards first
+    if (gamePoints) {
+      const points = parseInt(gamePoints)
+      if (!isNaN(points) && points > 0) {
+        // Handle the paused rewards
+        const pausedResult = await handlePausedRewards(user, points, 'game',boosters)
+        if (pausedResult.success) {
+          return res.status(200).json({
+            message: pausedResult.message,
+            user
+          })
+        }
+      }
+    }
+
     // Calculate the available space for totalRewards across all users
     const totalRewardsInSystem = await User.aggregate([
       { $group: { _id: null, total: { $sum: '$balanceRewards' } } }
     ])
 
-    //calculates how much space is available for rewards in the system-wide
     const totalRewardsUsed = totalRewardsInSystem[0]
       ? totalRewardsInSystem[0].total
       : 0
@@ -639,22 +724,31 @@ const userGameRewards = async (req, res, next) => {
         `Created new userDailyreward for user ${telegramId} on ${currentDateString}`
       )
     }
-    if (await calculateDayDifference(user.streak.loginStreak.loginStreakDate) == 0) {
+
+    if (
+      (await calculateDayDifference(user.streak.loginStreak.loginStreakDate)) ==
+      0
+    ) {
       let currentDate = new Date()
       const currentDay = currentDate.toISOString().split('T')[0]
       currentDate = new Date(currentDay)
+
       // Calculate the difference in milliseconds
       const differenceInTime = Math.abs(
         currentDate.getTime() - distributionStartDate.getTime()
       )
-      // Convert the difference from milliseconds to days
       const differenceInDays =
         Math.floor(differenceInTime / (1000 * 3600 * 24)) - 1
-      // Calculate streaks
-      const login = await calculateDayDifference(user.streak.loginStreak.loginStreakDate) == 0
-      // console.log(user, login, differenceInDays,"user, login, differenceInDaysuser, login, differenceInDaysuser, login, differenceInDays");
-      const game = await calculateTaskStreak(user, login, differenceInDays);
-      logger.info(`Game Streak reward claimed successfully for user ${telegramId}`)
+
+      const login =
+        (await calculateDayDifference(
+          user.streak.loginStreak.loginStreakDate
+        )) == 0
+      const game = await calculateTaskStreak(user, login, differenceInDays)
+
+      logger.info(
+        `Game Streak reward claimed successfully for user ${telegramId}`
+      )
     } else {
       logger.info(`Game Streak reward already claimed for user ${telegramId}`)
     }
@@ -673,15 +767,13 @@ const userGameRewards = async (req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong'
     })
-
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
     next(err)
   }
 }
 
 const userTaskRewards = async (req, res, next) => {
   try {
-    const { telegramId, taskPoints, channel } = decryptedDatas(req)
+    const { telegramId, taskPoints, channel } = req.body
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`
@@ -716,12 +808,22 @@ const userTaskRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid channel provided.' })
     }
 
+    // Handle paused rewards separately if we are in the paused period
+    const pausedRewardResult = await handlePausedRewards(
+      user,
+      pointsToAdd,
+      channel
+    )
+    if (pausedRewardResult.success) {
+      return res.status(200).json({ message: pausedRewardResult.message, user })
+    }
+
     // Calculate the available space for totalRewards across all users
     const totalRewardsInSystem = await User.aggregate([
       { $group: { _id: null, total: { $sum: '$balanceRewards' } } }
     ])
 
-    //calculates how much space is available for rewards in the system-wide
+    // Calculates how much space is available for rewards in the system-wide
     const totalRewardsUsed = totalRewardsInSystem[0]
       ? totalRewardsInSystem[0].total
       : 0
@@ -749,7 +851,11 @@ const userTaskRewards = async (req, res, next) => {
       user.balanceRewards += allowedPoints
 
       // Update taskPoints within taskRewards
-      user.taskRewards.taskPoints += allowedPoints
+      if (!user.taskRewards) {
+        user.taskRewards = {}
+      }
+      user.taskRewards.taskPoints =
+        (user.taskRewards.taskPoints || 0) + allowedPoints
 
       // Set the specific channel to true
       user.taskRewards[channel] = true
@@ -1192,31 +1298,34 @@ const getMintedTokens = async (req, res, next) => {
       {
         $group: {
           _id: null, // Group all documents
-          totalBalanceRewards: { $sum: "$balanceRewards" } // Sum the balanceRewards field
+          totalBalanceRewards: { $sum: '$balanceRewards' } // Sum the balanceRewards field
         }
       }
-    ]);
+    ])
 
     // Extract the total balanceRewards
-    const total = totalMintedTokens.length > 0 ? totalMintedTokens[0].totalBalanceRewards : 0;
+    const total =
+      totalMintedTokens.length > 0
+        ? totalMintedTokens[0].totalBalanceRewards
+        : 0
 
     // Respond with the total minted tokens
     res.status(200).json({
       totalMintedTokens: total
-    });
+    })
   } catch (err) {
     // Log the error
-    logger.error(`Error processing Minted Tokens - ${err.message}`);
+    logger.error(`Error processing Minted Tokens - ${err.message}`)
 
     // Send error response
     res.status(500).json({
       message: 'Something went wrong'
-    });
+    })
 
     // Pass the error to the next middleware
-    next(err);
+    next(err)
   }
-};
+}
 
 module.exports = {
   login,

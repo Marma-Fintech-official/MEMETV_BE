@@ -444,7 +444,7 @@ const calculateReferStreak = async (user, todaysLogin, differenceInDays) => {
 
 const calculateTaskStreak = async (user, todaysLogin, differenceInDays) => {
   // check a user has logged in today
-  console.log("Inisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task Streak");
+  // console.log("Inisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task StreakInisde Task Streak");
   if (todaysLogin) {
     const currentDate = new Date()
     const currentDay = currentDate.getUTCDate()
