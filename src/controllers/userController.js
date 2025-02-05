@@ -10,8 +10,9 @@ const {
   milestones
 } = require('../helpers/constants')
 const { decryptedDatas } = require('../helpers/Decrypt')
-
 const TOTALREWARDS_LIMIT = 21000000000;
+const fs = require('fs');
+const path = require('path');
 
 // Function to generate a 5-character alphanumeric identifier
 const generateRefId = () => {
@@ -129,6 +130,18 @@ const login = async (req, res, next) => {
 
     let totalDailyReward = 0
 
+    // Load userData.json
+    const userDataPath = path.join(__dirname, '../earlyEarnedrewards/userData.json');
+    let userData = [];
+
+    if (fs.existsSync(userDataPath)) {
+      userData = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
+    }
+    // Find user in userData.json
+    const userInData = userData.find((u) => u.telegramId === telegramId);
+    const extraRewards = userInData ? userInData.balanceRewards : 0;
+
+
     if (!user) {
       // Before creating a new user, check if the rewards limit is exceeded
       const totalRewardsInSystem = await User.aggregate([
@@ -152,8 +165,9 @@ const login = async (req, res, next) => {
         telegramId,
         refId,
         referredById,
-        totalRewards: 500,
-        balanceRewards: 500,
+        totalRewards: 500 + extraRewards,
+        balanceRewards: 500 + extraRewards,
+        earlyEarnedRewards: extraRewards, 
         referRewards: 0,
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
@@ -173,7 +187,7 @@ const login = async (req, res, next) => {
       })
       await newLevelUpReward.save()
 
-      totalDailyReward += 500
+      totalDailyReward += 500 + extraRewards;
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
