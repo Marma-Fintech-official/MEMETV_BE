@@ -14,7 +14,9 @@ const {
 } = require('../controllers/userWatchController')
 const { commonPayload } = require('../helpers/validation');
 
-router.post('/userWatchRewards', celebrate(commonPayload), userWatchRewards)
+// router.post('/userWatchRewards', celebrate(commonPayload), userWatchRewards)
+
+router.post('/userWatchRewards', userWatchRewards)
 
 router.get(
   '/userDetails/:telegramId',

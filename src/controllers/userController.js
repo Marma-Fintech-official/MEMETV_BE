@@ -117,7 +117,9 @@ const updateLevel = async (user, isFromStaking = false) => {
 
 const login = async (req, res, next) => {
   try {
-    let { name, referredById, telegramId, superUser } = decryptedDatas(req);
+    // let { name, referredById, telegramId, superUser } = decryptedDatas(req);
+
+    let { name, referredById, telegramId, superUser } = req.body
     name = name.trim();
     telegramId = telegramId.trim();
     const refId = generateRefId(); // Generate a refId for new users
