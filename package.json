@@ -6,11 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "promo": "node ./src/PromoCodes/promoGenerator.js"
+    "promo": "node ./src/PromoCodes/promoGenerator.js",
+    "admin": "node ./src/admin/controller/createAdmin.js"
   },
   "author": "paviesh",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "celebrate": "^15.0.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -23,6 +26,7 @@
     "helmet": "^7.1.0",
     "http-proxy-middleware": "^3.0.3",
     "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",

@@ -8,5 +8,6 @@ router.use('/', require('./userStreakRoute'))
 router.use('/', require('./promoCodeRoute'))
 router.use('/', require('./cronRoute'))
 router.use('/', require('../../src/admin/routes/adminRoute'))
+console.log("Admin login route hit"); // Debug log for verification
 
 module.exports = router

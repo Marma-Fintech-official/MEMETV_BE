@@ -68,7 +68,7 @@ if (cluster.isMaster) {
   mongoose
     .connect(process.env.DBURL, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 30000
     })
     .then(() => {
       logger.info(
