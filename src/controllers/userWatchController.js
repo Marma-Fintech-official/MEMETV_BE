@@ -71,9 +71,8 @@ const updateUserDailyReward = async (
 }
 
 
-
 const userWatchRewards = async (req, res, next) => {
-  const { telegramId } = req.body;
+  const { telegramId, boosterType } = req.body;
 
   try {
     // Find user
@@ -94,10 +93,19 @@ const userWatchRewards = async (req, res, next) => {
 
     // Loop through memeThresholds to find the correct level based on memeIndex
     for (let i = memeThresholds.length - 1; i >= 0; i--) {
-      if (user.watchRewards.memeIndex >= memeThresholds[i].memeIndexLimit) {
+      if (user.watchRewards.memeIndex > memeThresholds[i].memeIndexLimit) {
         level = memeThresholds[i].level;
         watchPoints = watchRewardsPerMeme[i];
         break;
+      }
+    }
+
+    // If boosterType is levelUp, add the next level's reward
+    if (boosterType === 'levelUp') {
+      // Check if the user is already at the highest level
+      if (level < memeThresholds.length) {
+        watchPoints = watchRewardsPerMeme[level]; // Add next level's reward
+        level += 1; // Increase level
       }
     }
 
@@ -127,7 +135,40 @@ const userWatchRewards = async (req, res, next) => {
   }
 };
 
+const deactiveBooster = async (req, res, next) => {
+  try {
+    const { telegramId, boosterType } = req.body;
+    
+    // Find the user and remove the booster with the specified type
+    const user = await User.findOneAndUpdate(
+      { telegramId, 'boosters.type': boosterType }, // Match the user and booster type
+      { $pull: { boosters: { type: boosterType } } }, // Remove the booster from the array
+      { new: true } // Return the updated document
+    );
 
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found or booster not active'
+      });
+    }
+
+    res.status(200).json({
+      message: `Booster of type ${boosterType} deactivated successfully`,
+      user
+    });
+    
+  } catch (err) {
+    logger.error(
+      `Error processing booster deactivation for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
+      }`
+    );
+    res.status(500).json({
+      message: 'Something went wrong'
+    });
+    next(err);
+  }
+}
 
 
 const userDetails = async (req, res, next) => {
@@ -612,6 +653,7 @@ const dailyRewards = async (req, res, next) => {
 };
 module.exports = {
   userWatchRewards,
+  deactiveBooster,
   userDetails,
   boosterDetails,
   popularUser,
