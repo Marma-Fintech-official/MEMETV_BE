@@ -87,41 +87,34 @@ const userWatchRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'memeId is required' })
     }
 
-    // Check if the meme was already viewed
-    if (user.watchRewards.lastViewedMemeId == memeId) {
-      logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Meme already viewed' })
-    }
-
     // Update lastViewedMemeId with the new memeId
     user.watchRewards.lastViewedMemeId = memeId
 
     // Increase memeIndex on each API call
     user.watchRewards.memeIndex += 1
 
-    // Determine the level and corresponding reward based on the current memeIndex
-    let level = 1
-    let watchPoints = 0
-
+    // Determine the current level based on memeIndex
+    let currentLevel = 1
     for (let i = memeThresholds.length - 1; i >= 0; i--) {
       if (user.watchRewards.memeIndex > memeThresholds[i].memeIndexLimit) {
-        level = memeThresholds[i].level
-        watchPoints = watchRewardsPerMeme[i]
+        currentLevel = memeThresholds[i].level
         break
       }
     }
 
-    // If boosterType is levelUp, add the next level's reward
-    if (boosterType === 'levelUp' && level < memeThresholds.length) {
-      watchPoints = watchRewardsPerMeme[level]
-      level += 1
+    let watchPoints = 0
+
+    // If boosterType is "levelUp", add only the next level's reward
+    if (boosterType === 'levelUp' && currentLevel < memeThresholds.length) {
+      watchPoints = watchRewardsPerMeme[currentLevel] // Next level reward
+    } else {
+      watchPoints = watchRewardsPerMeme[currentLevel - 1] // Current level reward
     }
 
     // Update watchPoints and rewards
     user.watchRewards.watchPoints += watchPoints
     user.balanceRewards += watchPoints
     user.totalRewards += watchPoints
-    user.level = level
 
     // Save the updated user data
     await user.save()
@@ -129,17 +122,16 @@ const userWatchRewards = async (req, res, next) => {
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
       watchRewards: user.watchRewards,
-      level,
+      level: currentLevel, // Level updates only when memeIndex crosses a threshold
       balanceRewards: user.balanceRewards,
       totalRewards: user.totalRewards
     })
   } catch (err) {
     logger.error(
-      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
-        err.message
-      }`
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message}`
     )
-    return res.status(500).json({ message: 'Internal server error' })
+    return res.status(500).json({ message: 'Internal server error' }),
+    next(err)
   }
 }
 
@@ -667,27 +659,25 @@ const dailyRewards = async (req, res, next) => {
 
 const getMemes = async (req, res) => {
   try {
-    const { lastViewedMemeId } = req.params;
-    const limit = 10;
+    const { lastViewedMemeId } = req.params
+    const limit = 10
 
     // Convert lastViewedMemeId to number
-    const lastMemeId = parseInt(lastViewedMemeId, 10);
+    const lastMemeId = parseInt(lastViewedMemeId, 10)
 
     // Fetch memes with only memeId and memeImage
     const memes = await userMeme
       .find(lastMemeId === 0 ? {} : { memeId: { $gt: lastMemeId } }) // Filter memes
       .sort({ memeId: 1 }) // Sort in ascending order
       .limit(limit) // Limit to 10 results
-      .select("memeId memeImage"); // Only include memeId and memeImage
+      .select('memeId memeImage') // Only include memeId and memeImage
 
-    res.json({ success: true, memes });
+    res.json({ success: true, memes })
   } catch (error) {
-    console.error("Error fetching memes:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    console.error('Error fetching memes:', error)
+    res.status(500).json({ success: false, message: 'Internal server error' })
   }
-};
-
-
+}
 
 module.exports = {
   userWatchRewards,
