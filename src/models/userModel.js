@@ -14,6 +14,10 @@ const userSchema = mongoose.Schema(
     refId: {
       type: String
     },
+    pausedRewards: {
+      type: Number,
+      default: 0
+    },
     totalRewards: {
       type: Number,
       default: 500
