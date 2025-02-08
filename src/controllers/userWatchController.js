@@ -70,7 +70,7 @@ const updateUserDailyReward = async (
 }
 
 const userWatchRewards = async (req, res, next) => {
-  const { telegramId, boosterType } = req.body
+  const { telegramId, boosterType, memeId } = req.body
 
   try {
     // Find user
@@ -82,6 +82,20 @@ const userWatchRewards = async (req, res, next) => {
 
     logger.info(`User found for telegramId: ${telegramId}`)
 
+    if (!memeId) {
+      logger.warn(`memeId is required but not provided`)
+      return res.status(400).json({ message: 'memeId is required' })
+    }
+
+    // Check if the meme was already viewed
+    if (user.watchRewards.lastViewedMemeId == memeId) {
+      logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`)
+      return res.status(400).json({ message: 'Meme already viewed' })
+    }
+
+    // Update lastViewedMemeId with the new memeId
+    user.watchRewards.lastViewedMemeId = memeId
+
     // Increase memeIndex on each API call
     user.watchRewards.memeIndex += 1
 
@@ -89,7 +103,6 @@ const userWatchRewards = async (req, res, next) => {
     let level = 1
     let watchPoints = 0
 
-    // Loop through memeThresholds to find the correct level based on memeIndex
     for (let i = memeThresholds.length - 1; i >= 0; i--) {
       if (user.watchRewards.memeIndex > memeThresholds[i].memeIndexLimit) {
         level = memeThresholds[i].level
@@ -99,22 +112,15 @@ const userWatchRewards = async (req, res, next) => {
     }
 
     // If boosterType is levelUp, add the next level's reward
-    if (boosterType === 'levelUp') {
-      // Check if the user is already at the highest level
-      if (level < memeThresholds.length) {
-        watchPoints = watchRewardsPerMeme[level] // Add next level's reward
-        level += 1 // Increase level
-      }
+    if (boosterType === 'levelUp' && level < memeThresholds.length) {
+      watchPoints = watchRewardsPerMeme[level]
+      level += 1
     }
 
-    // Add the calculated watchPoints to user's current watchPoints
+    // Update watchPoints and rewards
     user.watchRewards.watchPoints += watchPoints
-
-    // Add the watchPoints to both balanceRewards and totalRewards
     user.balanceRewards += watchPoints
     user.totalRewards += watchPoints
-
-    // Update the level in the user model
     user.level = level
 
     // Save the updated user data
@@ -123,7 +129,7 @@ const userWatchRewards = async (req, res, next) => {
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
       watchRewards: user.watchRewards,
-      level, // Return the current level
+      level,
       balanceRewards: user.balanceRewards,
       totalRewards: user.totalRewards
     })
