@@ -11,9 +11,10 @@ const {
   tutorialStatus,
   stakingHistory,
   addWalletAddress,
-  dailyRewards
+  dailyRewards,
+  getMemes
 } = require('../controllers/userWatchController')
-const { commonPayload } = require('../helpers/validation');
+const { commonPayload } = require('../helpers/validation')
 
 // router.post('/userWatchRewards', celebrate(commonPayload), userWatchRewards)
 
@@ -83,6 +84,16 @@ router.get(
     })
   }),
   dailyRewards
+)
+
+router.get(
+  '/getMemes/:lastViewedMemeId',
+  celebrate({
+    [Segments.PARAMS]: Joi.object().keys({
+      lastViewedMemeId: Joi.number().required()
+    })
+  }),
+  getMemes
 )
 
 router.use(errors())

@@ -4,18 +4,17 @@ const userDailyreward = require('../models/userDailyrewardsModel')
 const userMeme = require('../models/userMemeModel')
 const { watchRewardsPerMeme, memeThresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
-const {decryptedDatas} = require('../helpers/Decrypt');
+const { decryptedDatas } = require('../helpers/Decrypt')
 const startDate = new Date('2025-01-09') // Project start date
 
 const calculatePhase = (currentDate, startDate) => {
-  const oneDay = 24 * 60 * 60 * 1000;
-  const daysDifference = Math.floor((currentDate - startDate) / oneDay);
-  if (daysDifference < 0) return 0; // Before start date
-  return Math.ceil(daysDifference / 7);
+  const oneDay = 24 * 60 * 60 * 1000
+  const daysDifference = Math.floor((currentDate - startDate) / oneDay)
+  if (daysDifference < 0) return 0 // Before start date
+  return Math.ceil(daysDifference / 7)
 }
 
-const TOTALREWARDS_LIMIT = 21000000000;
-
+const TOTALREWARDS_LIMIT = 21000000000
 
 const updateUserDailyReward = async (
   userId,
@@ -65,38 +64,37 @@ const updateUserDailyReward = async (
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
+    })
     next(err)
   }
 }
 
-
 const userWatchRewards = async (req, res, next) => {
-  const { telegramId, boosterType } = req.body;
+  const { telegramId, boosterType } = req.body
 
   try {
     // Find user
-    const user = await User.findOne({ telegramId });
+    const user = await User.findOne({ telegramId })
     if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`);
-      return res.status(404).json({ message: 'User not found' });
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
     }
 
-    logger.info(`User found for telegramId: ${telegramId}`);
+    logger.info(`User found for telegramId: ${telegramId}`)
 
     // Increase memeIndex on each API call
-    user.watchRewards.memeIndex += 1;
+    user.watchRewards.memeIndex += 1
 
     // Determine the level and corresponding reward based on the current memeIndex
-    let level = 1;
-    let watchPoints = 0;
+    let level = 1
+    let watchPoints = 0
 
     // Loop through memeThresholds to find the correct level based on memeIndex
     for (let i = memeThresholds.length - 1; i >= 0; i--) {
       if (user.watchRewards.memeIndex > memeThresholds[i].memeIndexLimit) {
-        level = memeThresholds[i].level;
-        watchPoints = watchRewardsPerMeme[i];
-        break;
+        level = memeThresholds[i].level
+        watchPoints = watchRewardsPerMeme[i]
+        break
       }
     }
 
@@ -104,72 +102,74 @@ const userWatchRewards = async (req, res, next) => {
     if (boosterType === 'levelUp') {
       // Check if the user is already at the highest level
       if (level < memeThresholds.length) {
-        watchPoints = watchRewardsPerMeme[level]; // Add next level's reward
-        level += 1; // Increase level
+        watchPoints = watchRewardsPerMeme[level] // Add next level's reward
+        level += 1 // Increase level
       }
     }
 
     // Add the calculated watchPoints to user's current watchPoints
-    user.watchRewards.watchPoints += watchPoints;
+    user.watchRewards.watchPoints += watchPoints
 
     // Add the watchPoints to both balanceRewards and totalRewards
-    user.balanceRewards += watchPoints;
-    user.totalRewards += watchPoints;
+    user.balanceRewards += watchPoints
+    user.totalRewards += watchPoints
 
     // Update the level in the user model
-    user.level = level;
+    user.level = level
 
     // Save the updated user data
-    await user.save();
+    await user.save()
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
       watchRewards: user.watchRewards,
-      level,  // Return the current level
+      level, // Return the current level
       balanceRewards: user.balanceRewards,
-      totalRewards: user.totalRewards,
-    });
+      totalRewards: user.totalRewards
+    })
   } catch (err) {
-    logger.error(`Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message}`);
-    return res.status(500).json({ message: 'Internal server error' });
+    logger.error(
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
+      }`
+    )
+    return res.status(500).json({ message: 'Internal server error' })
   }
-};
+}
 
 const deactiveBooster = async (req, res, next) => {
   try {
-    const { telegramId, boosterType } = req.body;
-    
+    const { telegramId, boosterType } = req.body
+
     // Find the user and remove the booster with the specified type
     const user = await User.findOneAndUpdate(
       { telegramId, 'boosters.type': boosterType }, // Match the user and booster type
       { $pull: { boosters: { type: boosterType } } }, // Remove the booster from the array
       { new: true } // Return the updated document
-    );
+    )
 
     if (!user) {
       return res.status(404).json({
         message: 'User not found or booster not active'
-      });
+      })
     }
 
     res.status(200).json({
       message: `Booster of type ${boosterType} deactivated successfully`,
       user
-    });
-    
+    })
   } catch (err) {
     logger.error(
-      `Error processing booster deactivation for telegramId: ${telegramId || 'unknown'} - ${
-        err.message
-      }`
-    );
+      `Error processing booster deactivation for telegramId: ${
+        telegramId || 'unknown'
+      } - ${err.message}`
+    )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-    next(err);
+    })
+    next(err)
   }
 }
-
 
 const userDetails = async (req, res, next) => {
   try {
@@ -215,7 +215,7 @@ const userDetails = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
+    })
     next(err)
   }
 }
@@ -257,10 +257,10 @@ const boosterDetails = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
@@ -327,10 +327,10 @@ const popularUser = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
@@ -372,7 +372,6 @@ const yourReferrals = async (req, res, next) => {
 
     const userIds = paginatedReferenceIds.map(ref => ref.userId)
 
-
     // Find the referenced users and select the required fields
     const referencedUsers = await User.find({ _id: { $in: userIds } }).select(
       'name balanceRewards'
@@ -393,7 +392,7 @@ const yourReferrals = async (req, res, next) => {
       return {
         userId: ref.userId,
         name: refUser ? refUser.name : 'Unknown', // Handle case where referenced user is not found
-        balanceRewards:  refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
+        balanceRewards: refUser ? refUser.balanceRewards : 0, // Assuming balanceRewards is part of the referral object
         createdAt: ref.createdAt
       }
     })
@@ -416,21 +415,18 @@ const yourReferrals = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
-
 const tutorialStatus = async (req, res, next) => {
   try {
-    
-    const { telegramId, tutorialStatus } = decryptedDatas(req);
-    console.log( telegramId, tutorialStatus,' telegramId, tutorialStatus');
+    const { telegramId, tutorialStatus } = decryptedDatas(req)
+    console.log(telegramId, tutorialStatus, ' telegramId, tutorialStatus')
 
-    
     if (!telegramId || tutorialStatus === undefined) {
       return res.status(400).json({ message: 'Invalid payload structure' })
     }
@@ -453,8 +449,8 @@ const tutorialStatus = async (req, res, next) => {
     logger.error(`Error updating tutorial status: ${err.message}`)
     res
       .status(500)
-      .json({ error: 'Something went wrong', details: err.message }); 
-      next(err)
+      .json({ error: 'Something went wrong', details: err.message })
+    next(err)
   }
 }
 
@@ -504,17 +500,17 @@ const stakingHistory = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const addWalletAddress = async (req, res, next) => {
   try {
-     // Ensure decryptedData is parsed JSON
-    const { telegramId,userWalletAddress } = decryptedDatas(req);
+    // Ensure decryptedData is parsed JSON
+    const { telegramId, userWalletAddress } = decryptedDatas(req)
     // Find the user by telegramId
     const user = await User.findOne({ telegramId })
 
@@ -541,116 +537,152 @@ const addWalletAddress = async (req, res, next) => {
     )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
   }
 }
 
 const dailyRewards = async (req, res, next) => {
   try {
-    let { telegramId } = req.params;
-    const { currentPhase = 1 } = req.query;
+    let { telegramId } = req.params
+    const { currentPhase = 1 } = req.query
 
     // Log the incoming request
-    logger.info(`Received request to calculate daily rewards for telegramId: ${telegramId}, currentPhase: ${currentPhase}`);
+    logger.info(
+      `Received request to calculate daily rewards for telegramId: ${telegramId}, currentPhase: ${currentPhase}`
+    )
 
     // Trim leading and trailing spaces
-    telegramId = telegramId.trim();
+    telegramId = telegramId.trim()
 
     // Validate currentPhase
-    const phase = parseInt(currentPhase);
+    const phase = parseInt(currentPhase)
     if (isNaN(phase) || phase <= 0) {
-      logger.warn(`Invalid currentPhase: ${currentPhase}`);
-      return res.status(400).json({ message: 'Invalid currentPhase' });
+      logger.warn(`Invalid currentPhase: ${currentPhase}`)
+      return res.status(400).json({ message: 'Invalid currentPhase' })
     }
 
-      // Retrieve the user's balanceRewards from the User model
-      const user = await User.findOne({ telegramId });
-      if (!user) {
-        logger.warn(`User not found for telegramId: ${telegramId}`);
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      const { balanceRewards: totalRewards } = user;
+    // Retrieve the user's balanceRewards from the User model
+    const user = await User.findOne({ telegramId })
+    if (!user) {
+      logger.warn(`User not found for telegramId: ${telegramId}`)
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    const { balanceRewards: totalRewards } = user
 
     // Check if telegramId exists in userDailyreward collection
-    const userExists = await userDailyreward.exists({ telegramId });
+    const userExists = await userDailyreward.exists({ telegramId })
     if (!userExists) {
-      logger.warn(`No records found for telegramId: ${telegramId}`);
+      logger.warn(`No records found for telegramId: ${telegramId}`)
       return res.status(200).json({
         dailyRewards: [],
         totalRewards,
-        message: `No rewards found for telegramId: ${telegramId}`,
-      });
+        message: `No rewards found for telegramId: ${telegramId}`
+      })
     }
 
     // Calculate the start and end dates for the requested phase
-    const phaseStartDate = new Date(startDate.getTime() + (phase - 1) * 7 * 24 * 60 * 60 * 1000);
-    const phaseEndDate = new Date(phaseStartDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const phaseStartDate = new Date(
+      startDate.getTime() + (phase - 1) * 7 * 24 * 60 * 60 * 1000
+    )
+    const phaseEndDate = new Date(
+      phaseStartDate.getTime() + 7 * 24 * 60 * 60 * 1000
+    )
 
     // Fetch all daily rewards records for the current phase
     const dailyRewardsRecords = await userDailyreward.find({
       telegramId,
-      createdAt: { $gte: phaseStartDate, $lt: phaseEndDate },
-    });
+      createdAt: { $gte: phaseStartDate, $lt: phaseEndDate }
+    })
 
-    logger.info(`Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}, phase: ${currentPhase}`);
+    logger.info(
+      `Successfully retrieved ${dailyRewardsRecords.length} daily rewards for telegramId: ${telegramId}, phase: ${currentPhase}`
+    )
 
     // Generate the full 7-day range for the current phase
-    const fullPhaseDates = [];
+    const fullPhaseDates = []
     for (let i = 0; i < 7; i++) {
-      const date = new Date(phaseStartDate);
-      date.setDate(date.getDate() + i);
-      fullPhaseDates.push(date.toISOString().split('T')[0]); // Format as YYYY-MM-DD
+      const date = new Date(phaseStartDate)
+      date.setDate(date.getDate() + i)
+      fullPhaseDates.push(date.toISOString().split('T')[0]) // Format as YYYY-MM-DD
     }
 
     // Map existing records into an object keyed by date
     const recordsByDate = dailyRewardsRecords.reduce((acc, record) => {
-      const dateKey = record.createdAt.toISOString().split('T')[0];
-      acc[dateKey] = record;
-      return acc;
-    }, {});
+      const dateKey = record.createdAt.toISOString().split('T')[0]
+      acc[dateKey] = record
+      return acc
+    }, {})
 
     // Process the full range of dates and include missing records with default values
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset the time part
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset the time part
 
-    let totalPhaseRewards = 0;
+    let totalPhaseRewards = 0
 
-    const processedRewards = fullPhaseDates.map((dateKey) => {
+    const processedRewards = fullPhaseDates.map(dateKey => {
       if (recordsByDate[dateKey]) {
         // Use existing record
-        const reward = recordsByDate[dateKey];
-        const stakeButton = today > new Date(reward.createdAt) ? 'enable' : 'disable';
-        return { ...reward.toObject(), stakeButton };
+        const reward = recordsByDate[dateKey]
+        const stakeButton =
+          today > new Date(reward.createdAt) ? 'enable' : 'disable'
+        return { ...reward.toObject(), stakeButton }
       } else {
         // Add default record
         return {
           createdAt: dateKey,
           telegramId,
           dailyEarnedRewards: 0,
-          stakeButton: 'disable',
-        };
+          stakeButton: 'disable'
+        }
       }
-    });
+    })
 
     // Return the response
     return res.status(200).json({
       dailyRewards: processedRewards,
-      totalRewards,
-    });
+      totalRewards
+    })
   } catch (err) {
-    logger.error(`Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`);
+    logger.error(
+      `Error fetching daily rewards for telegramId: ${telegramId} - ${err.message}`
+    )
     res.status(500).json({
       message: 'Something went wrong'
-    });
-  
+    })
+
     // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err);
+    next(err)
+  }
+}
+
+const getMemes = async (req, res) => {
+  try {
+    const { lastViewedMemeId } = req.params;
+    const limit = 10;
+
+    // Convert lastViewedMemeId to number
+    const lastMemeId = parseInt(lastViewedMemeId, 10);
+
+    // Fetch memes with only memeId and memeImage
+    const memes = await userMeme
+      .find(lastMemeId === 0 ? {} : { memeId: { $gt: lastMemeId } }) // Filter memes
+      .sort({ memeId: 1 }) // Sort in ascending order
+      .limit(limit) // Limit to 10 results
+      .select("memeId memeImage"); // Only include memeId and memeImage
+
+    res.json({ success: true, memes });
+  } catch (error) {
+    console.error("Error fetching memes:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+
+
 module.exports = {
   userWatchRewards,
   deactiveBooster,
@@ -661,5 +693,6 @@ module.exports = {
   tutorialStatus,
   stakingHistory,
   addWalletAddress,
+  getMemes,
   dailyRewards
 }
