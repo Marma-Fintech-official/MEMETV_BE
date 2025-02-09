@@ -20,7 +20,6 @@ const updateUserDailyReward = async (
   userId,
   telegramId,
   dailyEarnedRewards,
-  levelUpRewards = 0
 ) => {
   const now = new Date()
   const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
@@ -36,10 +35,10 @@ const updateUserDailyReward = async (
       }
     })
 
-    const totalDailyRewards = dailyEarnedRewards + levelUpRewards // Combine both earned rewards and level-up rewards
+    const totalDailyRewards = dailyEarnedRewards  // Combine both earned rewards
 
     if (dailyReward) {
-      // If a record exists, update the dailyEarnedRewards including levelUpRewards
+      // If a record exists, update the dailyEarnedRewards 
       dailyReward.dailyEarnedRewards += totalDailyRewards
       await dailyReward.save()
       logger.info(
@@ -87,6 +86,9 @@ const userWatchRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'memeId is required' })
     }
 
+    const now = new Date(); // Get current date and time
+    const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
+
     // Update lastViewedMemeId with the new memeId
     user.watchRewards.lastViewedMemeId = memeId
 
@@ -118,6 +120,10 @@ const userWatchRewards = async (req, res, next) => {
 
     // Save the updated user data
     await user.save()
+
+
+    // Update daily rewards
+    await updateUserDailyReward(user._id, telegramId, watchPoints);
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
