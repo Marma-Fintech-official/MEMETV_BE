@@ -27,7 +27,7 @@ const adminLogin = async (req, res) => {
            {expiresIn : '1h'}
         );
 
-        res.json({ message: 'Login successful', token });
+        res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
         console.error('Error during admin login:', error);
         res.status(500).json({ message: 'Server error' });
@@ -100,10 +100,11 @@ const getTotalusers = async (req, res)=> {
         if (startDate) {
             query.updatedAt = { $gte: startDate, $lte: endDate };
         }
-
+        console.log("MongoDB Query:", JSON.stringify(query, null, 2)); // ✅ Log the query
         const userCount = await User.countDocuments(query);
 
         res.status(200).json({ totalUsers: userCount });
+        console.log({userCount});
     } catch (error) {
         console.error('Error fetching total users:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -133,7 +134,7 @@ const getTotalusers = async (req, res)=> {
 
 const individualsRewards = async (req, res)=>{
     try {
-        const users = await User.find({}, 'telegramId balanceRewards');  // Selecting only specific fields
+        const users = await User.find({}, 'name balanceRewards');  // Selecting only specific fields
 
         if (users.length > 0) {
             res.status(200).json(users);
