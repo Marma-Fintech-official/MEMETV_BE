@@ -68,6 +68,7 @@ const updateUserDailyReward = async (
   }
 }
 
+
 const userWatchRewards = async (req, res, next) => {
   const { telegramId, boosterType, memeId } = req.body
 
@@ -91,12 +92,10 @@ const userWatchRewards = async (req, res, next) => {
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
     // Check if the meme was already viewed
-    if (user.watchRewards.lastViewedMemeId == memeId) {
-      logger.warn(
-        `Meme ID ${memeId} already viewed by telegramId: ${telegramId}`
-      )
-      return res.status(400).json({ message: 'Meme already viewed' })
-    }
+    // if (user.watchRewards.lastViewedMemeId == memeId) {
+    //   logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`)
+    //   return res.status(400).json({ message: 'Meme already viewed' })
+    // }
 
     // Update lastViewedMemeId with the new memeId
     user.watchRewards.lastViewedMemeId = memeId
@@ -122,10 +121,34 @@ const userWatchRewards = async (req, res, next) => {
       watchPoints = watchRewardsPerMeme[currentLevel - 1] // Current level reward
     }
 
-    // Update watchPoints and rewards
-    user.watchRewards.watchPoints += watchPoints
-    user.balanceRewards += watchPoints
-    user.totalRewards += watchPoints
+    // Calculate how much can be added without exceeding the limit
+    const remainingSpace = TOTALREWARDS_LIMIT - user.balanceRewards
+    const pointsToAdd = Math.min(watchPoints, remainingSpace)
+
+    if (pointsToAdd === 0) {
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} reached for user.`
+      })
+    }
+
+    // Add only the allowed points
+    user.watchRewards.watchPoints += pointsToAdd
+    user.balanceRewards += pointsToAdd
+    user.totalRewards += pointsToAdd
+
+    // Calculate the available space for rewards across all users
+    const totalRewardsInSystem = await User.aggregate([
+      { $group: { _id: null, total: { $sum: '$balanceRewards' } } }
+    ])
+
+    const totalRewardsUsed = totalRewardsInSystem[0] ? totalRewardsInSystem[0].total : 0
+    const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed
+
+    if (availableSpace <= 0) {
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`
+      })
+    }
 
     // Add a userReward entry for "watch"
     let watchReward = await userReward.findOne({
@@ -135,22 +158,22 @@ const userWatchRewards = async (req, res, next) => {
     })
 
     if (watchReward) {
-      watchReward.rewardPoints += watchPoints
+      watchReward.rewardPoints += pointsToAdd
       await watchReward.save()
       logger.info(
-        `Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchPoints}`
+        `Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${pointsToAdd}`
       )
     } else {
       watchReward = new userReward({
         category: 'watch',
         date: currentDateString,
-        rewardPoints: watchPoints,
+        rewardPoints: pointsToAdd,
         userId: user._id,
         telegramId
       })
       await watchReward.save()
       logger.info(
-        `Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchPoints}`
+        `Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${pointsToAdd}`
       )
     }
 
@@ -158,7 +181,7 @@ const userWatchRewards = async (req, res, next) => {
     await user.save()
 
     // Update daily rewards
-    await updateUserDailyReward(user._id, telegramId, watchPoints)
+    await updateUserDailyReward(user._id, telegramId, pointsToAdd)
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
@@ -166,17 +189,16 @@ const userWatchRewards = async (req, res, next) => {
       level: currentLevel,
       balanceRewards: user.balanceRewards,
       totalRewards: user.totalRewards,
-      currentPhase: currentPhase,
+      currentPhase: currentPhase
     })
   } catch (err) {
     logger.error(
-      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
-        err.message
-      }`
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message}`
     )
     return res.status(500).json({ message: 'Internal server error' }), next(err)
   }
 }
+
 
 const deactiveBooster = async (req, res, next) => {
   try {
