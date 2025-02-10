@@ -163,9 +163,10 @@ const userWatchRewards = async (req, res, next) => {
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
       watchRewards: user.watchRewards,
-      level: currentLevel, // Level updates only when memeIndex crosses a threshold
+      level: currentLevel,
       balanceRewards: user.balanceRewards,
-      totalRewards: user.totalRewards
+      totalRewards: user.totalRewards,
+      currentPhase: currentPhase,
     })
   } catch (err) {
     logger.error(
