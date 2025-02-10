@@ -70,7 +70,7 @@ const updateUserDailyReward = async (
 
 
 const userWatchRewards = async (req, res, next) => {
-  const { telegramId, boosterType, memeId } = req.body
+  const { telegramId, boosterType, memeId, memeStatus } = req.body
 
   try {
     // Find user
@@ -82,20 +82,37 @@ const userWatchRewards = async (req, res, next) => {
 
     logger.info(`User found for telegramId: ${telegramId}`)
 
-    if (!memeId) {
-      logger.warn(`memeId is required but not provided`)
-      return res.status(400).json({ message: 'memeId is required' })
+
+    if (!memeStatus && !memeId) {
+      logger.warn(`Invalid memeStatus provided`);
+      return res.status(400).json({ message: 'memeStatus and memeId is required' });
     }
+
+     // Check if the meme was already viewed
+     if (user.watchRewards.lastViewedMemeId == memeId) {
+      logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`)
+      return res.status(400).json({ message: 'Meme already viewed' })
+    }
+
+    // Find meme in userMeme model
+    const meme = await userMeme.findOne({ memeId });
+    if (!meme) {
+      logger.warn(`Meme not found for memeId: ${memeId}`);
+      return res.status(404).json({ message: 'Meme not found' });
+    }
+
+    // Update like or dislike count
+    if (memeStatus) {
+      meme.like += 1;
+    } else {
+      meme.dislike += 1;
+    }
+
+    await meme.save();
 
     const now = new Date()
     const currentPhase = calculatePhase(now, startDate)
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
-
-    // Check if the meme was already viewed
-    // if (user.watchRewards.lastViewedMemeId == memeId) {
-    //   logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`)
-    //   return res.status(400).json({ message: 'Meme already viewed' })
-    // }
 
     // Update lastViewedMemeId with the new memeId
     user.watchRewards.lastViewedMemeId = memeId
@@ -195,7 +212,7 @@ const userWatchRewards = async (req, res, next) => {
     logger.error(
       `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message}`
     )
-    return res.status(500).json({ message: 'Internal server error' }), next(err)
+    return res.status(500).json({ message: 'Something Went to Wrong' }), next(err)
   }
 }
 
