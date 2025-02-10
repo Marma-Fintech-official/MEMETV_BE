@@ -14,8 +14,8 @@ const calculatePhase = (currentDate, startDate) => {
   return Math.ceil(daysDifference / 7)
 }
 
-const TOTALREWARDS_LIMIT = 25
-const totalWatchPointsforEachUser = 10
+const TOTALREWARDS_LIMIT = 21000000000
+const totalWatchPointsforEachUser = 8250000
 
 const updateUserDailyReward = async (
   userId,
@@ -69,7 +69,6 @@ const updateUserDailyReward = async (
   }
 }
 
-
 const userWatchRewards = async (req, res, next) => {
   const { telegramId, boosterType, memeId, memeStatus } = req.body
 
@@ -85,23 +84,22 @@ const userWatchRewards = async (req, res, next) => {
 
     if (!memeStatus && !memeId) {
       logger.warn(`Invalid memeStatus provided`)
-      return res.status(400).json({ message: 'memeStatus and memeId is required' })
+      return res
+        .status(400)
+        .json({ message: 'memeStatus and memeId is required' })
     }
 
-    // Check if the meme was already viewed
-    if (user.watchRewards.lastViewedMemeId == memeId) {
-      logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`)
-      return res.status(400).json({ message: 'Meme already viewed' })
-    }
+    // if (user.watchRewards.lastViewedMemeId == memeId) {
+    //   logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`);
+    //   return res.status(400).json({ message: 'Meme already viewed' });
+    // }
 
-    // Find meme in userMeme model
     const meme = await userMeme.findOne({ memeId })
     if (!meme) {
       logger.warn(`Meme not found for memeId: ${memeId}`)
       return res.status(404).json({ message: 'Meme not found' })
     }
 
-    // Update like or dislike count
     if (memeStatus) {
       meme.like += 1
     } else {
@@ -112,15 +110,11 @@ const userWatchRewards = async (req, res, next) => {
 
     const now = new Date()
     const currentPhase = calculatePhase(now, startDate)
-    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+    const currentDateString = now.toISOString().split('T')[0]
 
-    // Update lastViewedMemeId with the new memeId
     user.watchRewards.lastViewedMemeId = memeId
-
-    // Increase memeIndex on each API call
     user.watchRewards.memeIndex += 1
 
-    // Determine the current level based on memeIndex
     let currentLevel = 1
     for (let i = memeThresholds.length - 1; i >= 0; i--) {
       if (user.watchRewards.memeIndex > memeThresholds[i].memeIndexLimit) {
@@ -129,55 +123,45 @@ const userWatchRewards = async (req, res, next) => {
       }
     }
 
-    let watchPoints = 0
+    let watchPoints =
+      boosterType === 'levelUp' && currentLevel < memeThresholds.length
+        ? watchRewardsPerMeme[currentLevel]
+        : watchRewardsPerMeme[currentLevel - 1]
 
-    // If boosterType is "levelUp", add only the next level's reward
-    if (boosterType === 'levelUp' && currentLevel < memeThresholds.length) {
-      watchPoints = watchRewardsPerMeme[currentLevel] // Next level reward
-    } else {
-      watchPoints = watchRewardsPerMeme[currentLevel - 1] // Current level reward
-    }
-
-    // Ensure user does not exceed their individual watch points limit (100)
-    const remainingWatchSpace = totalWatchPointsforEachUser - user.watchRewards.watchPoints
-    const watchPointsToAdd = Math.min(watchPoints, remainingWatchSpace)
+    const remainingWatchSpace =
+      totalWatchPointsforEachUser - user.watchRewards.watchPoints
+    let watchPointsToAdd = Math.min(watchPoints, remainingWatchSpace)
 
     if (watchPointsToAdd === 0) {
-      return res.status(403).json({
-        message: `User watch points limit of ${totalWatchPointsforEachUser} reached.`
-      })
+      return res
+        .status(403)
+        .json({
+          message: `User watch points limit of ${totalWatchPointsforEachUser} reached.`
+        })
     }
 
-    // Calculate how much can be added without exceeding the total rewards limit
-    const remainingSpace = TOTALREWARDS_LIMIT - user.balanceRewards
-    const finalPointsToAdd = Math.min(watchPointsToAdd, remainingSpace)
-
-    if (finalPointsToAdd === 0) {
-      return res.status(403).json({
-        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} reached for user.`
-      })
-    }
-
-    // Add only the allowed points
-    user.watchRewards.watchPoints += finalPointsToAdd
-    user.balanceRewards += finalPointsToAdd
-    user.totalRewards += finalPointsToAdd
-
-    // Calculate the available space for rewards across all users
     const totalRewardsInSystem = await User.aggregate([
       { $group: { _id: null, total: { $sum: '$balanceRewards' } } }
     ])
 
-    const totalRewardsUsed = totalRewardsInSystem[0] ? totalRewardsInSystem[0].total : 0
+    const totalRewardsUsed = totalRewardsInSystem[0]
+      ? totalRewardsInSystem[0].total
+      : 0
     const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed
+    watchPointsToAdd = Math.min(watchPointsToAdd, availableSpace)
 
-    if (availableSpace <= 0) {
-      return res.status(403).json({
-        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`
-      })
+    if (watchPointsToAdd === 0) {
+      return res
+        .status(403)
+        .json({
+          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} reached across all users.`
+        })
     }
 
-    // Add a userReward entry for "watch"
+    user.watchRewards.watchPoints += watchPointsToAdd
+    user.balanceRewards += watchPointsToAdd
+    user.totalRewards += watchPointsToAdd
+
     let watchReward = await userReward.findOne({
       telegramId,
       date: currentDateString,
@@ -185,26 +169,21 @@ const userWatchRewards = async (req, res, next) => {
     })
 
     if (watchReward) {
-      watchReward.rewardPoints += finalPointsToAdd
+      watchReward.rewardPoints += watchPointsToAdd
       await watchReward.save()
-      logger.info(`Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${finalPointsToAdd}`)
     } else {
       watchReward = new userReward({
         category: 'watch',
         date: currentDateString,
-        rewardPoints: finalPointsToAdd,
+        rewardPoints: watchPointsToAdd,
         userId: user._id,
         telegramId
       })
       await watchReward.save()
-      logger.info(`Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${finalPointsToAdd}`)
     }
 
-    // Save the updated user data
     await user.save()
-
-    // Update daily rewards
-    await updateUserDailyReward(user._id, telegramId, finalPointsToAdd)
+    await updateUserDailyReward(user._id, telegramId, watchPointsToAdd)
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
@@ -215,13 +194,14 @@ const userWatchRewards = async (req, res, next) => {
       currentPhase: currentPhase
     })
   } catch (err) {
-    logger.error(`Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message}`)
+    logger.error(
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
+      }`
+    )
     return res.status(500).json({ message: 'Something went wrong' }), next(err)
   }
 }
-
-
-
 
 const deactiveBooster = async (req, res, next) => {
   try {
