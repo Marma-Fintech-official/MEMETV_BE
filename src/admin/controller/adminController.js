@@ -78,38 +78,62 @@ const adminLogout = async (req, res) => {
     }
 };
 
-const getTotalusers = async (req, res)=> {
+const getTotalusers = async (req, res) => {
     try {
-        const { timeframe } = req.query; // ✅ Get timeframe from query
+        const { timeframe } = req.query;
         let startDate = null;
-        let endDate = new Date(); // End date is always the current time
+        let endDate = new Date(); // Current time
+        let groupBy = null; // Variable to determine grouping method
 
+        // If no timeframe is provided, return total user count in DB
+        if (!timeframe) {
+            const totalUsers = await User.countDocuments({});
+            return res.status(200).json({ totalUsers });
+        }
         if (timeframe === "week") {
             startDate = new Date();
             startDate.setDate(startDate.getDate() - 7);
+            groupBy = { $dayOfWeek: "$updatedAt" }; // Group by day of the week
         } else if (timeframe === "month") {
             startDate = new Date();
             startDate.setMonth(startDate.getMonth() - 1);
         } else if (timeframe === "today") {
             startDate = new Date();
-            startDate.setHours(0, 0, 0, 0); // Set time to start of the day
+            startDate.setHours(0, 0, 0, 0); // Start of today
+        } else {
+            return res.status(400).json({ error: "Invalid timeframe" });
         }
 
-        // ✅ Change the query to use `updatedAt` instead of `createdAt`
-        let query = {};
-        if (startDate) {
-            query.updatedAt = { $gte: startDate, $lte: endDate };
-        }
-        console.log("MongoDB Query:", JSON.stringify(query, null, 2)); // ✅ Log the query
-        const userCount = await User.countDocuments(query);
+        let query = { updatedAt: { $gte: startDate, $lte: endDate } };
 
-        res.status(200).json({ totalUsers: userCount });
-        console.log({userCount});
+        // ✅ Return a single total count for "today" and "month"
+        if (timeframe === "today" || timeframe === "month") {
+            const totalUsers = await User.countDocuments(query);
+            return res.status(200).json({ totalUsers });
+        }
+
+        // ✅ Aggregation for week (grouping by day of the week)
+        const usersGrouped = await User.aggregate([
+            { $match: query },
+            { $group: { _id: groupBy, totalUsers: { $sum: 1 } } }
+        ]);
+
+        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        let weekData = new Array(7).fill(0).map((_, i) => ({ [daysOfWeek[i]]: { totalUsers: 0 } }));
+
+        usersGrouped.forEach(({ _id, totalUsers }) => {
+            const dayName = daysOfWeek[_id % 7]; // Convert number to day name
+            weekData[_id - 1] = { [dayName]: { totalUsers } };
+        });
+
+        res.status(200).json(weekData);
     } catch (error) {
         console.error('Error fetching total users:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-}
+};
+
+
 
 
 // const getTotalRewards = async (req, res) => {
