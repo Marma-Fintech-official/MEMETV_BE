@@ -5,7 +5,6 @@ const UserReward = require('../models/userRewardModel')
 const logger = require('../helpers/logger')
 require('dotenv').config()
 const { decryptedDatas } = require('../helpers/Decrypt');
-const {updateLevel} = require('./userController');
 const TOTALREWARDS_LIMIT = 21000000000;
 
 // Update or create daily earned rewards
@@ -145,7 +144,6 @@ const validatePromocode = async (req, res) => {
     user.usedPromoCodes.push(promoCode)
 
     // Update daily earned rewards
-    await updateLevel(user);
     await user.save();
     await updateDailyEarnedRewards(user._id, telegramId, allowedPoints)
     await savePromoReward(user, allowedPoints, 'promo')
@@ -217,7 +215,6 @@ const earlyEarnedreward = async (req, res, next) => {
     user.balanceRewards += allowedPoints;
     user.totalRewards += allowedPoints;
 
-    await updateLevel(user); // Fix: Pass the user object to updateLevel
     await user.save();
     await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
     await savePromoReward(user, allowedPoints, 'Early earned')

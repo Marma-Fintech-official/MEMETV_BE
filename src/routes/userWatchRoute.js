@@ -3,6 +3,7 @@ const router = express.Router()
 const { celebrate, Joi, errors, Segments } = require('celebrate')
 const {
   userWatchRewards,
+  deactiveBooster,
   userDetails,
   boosterDetails,
   popularUser,
@@ -10,11 +11,18 @@ const {
   tutorialStatus,
   stakingHistory,
   addWalletAddress,
-  dailyRewards
+  dailyRewards,
+  getMemes
 } = require('../controllers/userWatchController')
-const { commonPayload } = require('../helpers/validation');
+const { commonPayload } = require('../helpers/validation')
 
 router.post('/userWatchRewards', celebrate(commonPayload), userWatchRewards)
+
+// router.post('/userWatchRewards', userWatchRewards)
+
+router.post('/deactiveBooster',celebrate(commonPayload), deactiveBooster)
+
+// router.post('/deactiveBooster', deactiveBooster)
 
 router.get(
   '/userDetails/:telegramId',
@@ -78,6 +86,16 @@ router.get(
     })
   }),
   dailyRewards
+)
+
+router.get(
+  '/getMemes/:lastViewedMemeId',
+  celebrate({
+    [Segments.PARAMS]: Joi.object().keys({
+      lastViewedMemeId: Joi.number().required()
+    })
+  }),
+  getMemes
 )
 
 router.use(errors())

@@ -35,8 +35,18 @@ const userSchema = mongoose.Schema(
       default: 0
     },
     watchRewards: {
-      type: Number,
-      default: 0
+      watchPoints: {
+        type: Number,
+        default: 0
+      },
+      memeIndex: {
+        type: Number,
+        default: 0
+      },
+      lastViewedMemeId: {
+        type: Number,
+        default: 0
+      }
     },
     gameRewards: {
       gamePoints: {

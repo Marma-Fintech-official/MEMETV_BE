@@ -14,7 +14,6 @@ const {
 } = require('../helpers/constants');
 const {decryptedDatas} = require('../helpers/Decrypt');
 const UserDailyReward = require('../models/userDailyrewardsModel'); // Import the model
-//const { updateLevel } = require('../controllers/userController');
 require('dotenv').config()
 const TOTALREWARDS_LIMIT = 21000000000;
 
@@ -856,8 +855,6 @@ const loginStreakRewardClaim = async (req, res, next) => {
       // Update or partially update the claimed reward
       user.streak.loginStreak.loginStreakReward[index] -= allowedPoints
 
-
-      // await updateLevel(user);
       await user.save()
 
       // Save reward record and update daily rewards
@@ -954,8 +951,6 @@ const watchStreakRewardClaim = async (req, res, next) => {
       // Set the claimed reward to 0
       user.streak.watchStreak.watchStreakReward[index] -= allowedPoints
 
-      
-      // await updateLevel(user);
       await user.save()
       // Save the reward record
       await saveStreakReward(user, allowedPoints)
@@ -1052,8 +1047,6 @@ const referStreakRewardClaim = async (req, res, next) => {
       // Reduce the reward amount or mark it as fully claimed
       user.streak.referStreak.referStreakReward[index] -= allowedPoints
 
-
-      // await updateLevel(user);
       // Save the user record
       await user.save()
 
@@ -1151,7 +1144,6 @@ const taskStreakRewardClaim = async (req, res, next) => {
       // Set the claimed reward to 0
       user.streak.taskStreak.taskStreakReward[index] -= allowedPoints
 
-      // await updateLevel(user);
       await user.save()
       // Save the reward record
       await saveStreakReward(user, rewardAmount)
@@ -1252,7 +1244,6 @@ const multiStreakRewardClaim = async (req, res, next) => {
       // Save the reward record
       await saveStreakReward(user, allowedPoints)
       await updateDailyEarnedRewards(user._id, telegramId, allowedPoints);
-      // await updateLevel(user);
 
       logger.info(
         `Multi Streak Reward claimed successfully for telegramId: ${telegramId}`
@@ -1361,7 +1352,6 @@ const streakOfStreakRewardClaim = async (req, res, next) => {
     // Reset streak of streak rewards only for the claimed amount
     user.streak.multiStreak.streakOfStreakRewards.fill(0)
     
-    // await updateLevel(user);
     await user.save()
 
     // Save the reward record
