@@ -19,7 +19,7 @@ const TOTALREWARDS_LIMIT = 21000000000
 const updateUserDailyReward = async (
   userId,
   telegramId,
-  dailyEarnedRewards,
+  dailyEarnedRewards
 ) => {
   const now = new Date()
   const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
@@ -35,10 +35,10 @@ const updateUserDailyReward = async (
       }
     })
 
-    const totalDailyRewards = dailyEarnedRewards  // Combine both earned rewards
+    const totalDailyRewards = dailyEarnedRewards // Combine both earned rewards
 
     if (dailyReward) {
-      // If a record exists, update the dailyEarnedRewards 
+      // If a record exists, update the dailyEarnedRewards
       dailyReward.dailyEarnedRewards += totalDailyRewards
       await dailyReward.save()
       logger.info(
@@ -86,8 +86,17 @@ const userWatchRewards = async (req, res, next) => {
       return res.status(400).json({ message: 'memeId is required' })
     }
 
-    const now = new Date(); // Get current date and time
-    const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const now = new Date()
+    const currentPhase = calculatePhase(now, startDate)
+    const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+
+    // Check if the meme was already viewed
+    if (user.watchRewards.lastViewedMemeId == memeId) {
+      logger.warn(
+        `Meme ID ${memeId} already viewed by telegramId: ${telegramId}`
+      )
+      return res.status(400).json({ message: 'Meme already viewed' })
+    }
 
     // Update lastViewedMemeId with the new memeId
     user.watchRewards.lastViewedMemeId = memeId
@@ -118,12 +127,38 @@ const userWatchRewards = async (req, res, next) => {
     user.balanceRewards += watchPoints
     user.totalRewards += watchPoints
 
+    // Add a userReward entry for "watch"
+    let watchReward = await userReward.findOne({
+      telegramId,
+      date: currentDateString,
+      category: 'watch'
+    })
+
+    if (watchReward) {
+      watchReward.rewardPoints += watchPoints
+      await watchReward.save()
+      logger.info(
+        `Updated watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchPoints}`
+      )
+    } else {
+      watchReward = new userReward({
+        category: 'watch',
+        date: currentDateString,
+        rewardPoints: watchPoints,
+        userId: user._id,
+        telegramId
+      })
+      await watchReward.save()
+      logger.info(
+        `Created new watch reward for user ${telegramId} on ${currentDateString}, totalRewardPoints: ${watchPoints}`
+      )
+    }
+
     // Save the updated user data
     await user.save()
 
-
     // Update daily rewards
-    await updateUserDailyReward(user._id, telegramId, watchPoints);
+    await updateUserDailyReward(user._id, telegramId, watchPoints)
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
@@ -134,10 +169,11 @@ const userWatchRewards = async (req, res, next) => {
     })
   } catch (err) {
     logger.error(
-      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${err.message}`
+      `Error processing rewards for telegramId: ${telegramId || 'unknown'} - ${
+        err.message
+      }`
     )
-    return res.status(500).json({ message: 'Internal server error' }),
-    next(err)
+    return res.status(500).json({ message: 'Internal server error' }), next(err)
   }
 }
 
