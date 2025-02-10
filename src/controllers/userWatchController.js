@@ -70,7 +70,8 @@ const updateUserDailyReward = async (
 
 
 const userWatchRewards = async (req, res, next) => {
-  const { telegramId, boosterType, memeId, memeStatus } = req.body
+  // const { telegramId, boosterType, memeId, memeStatus } = req.body
+  const { telegramId, boosterType, memeId, memeStatus } = decryptedDatas(req)
 
   try {
     // Find user
@@ -219,7 +220,8 @@ const userWatchRewards = async (req, res, next) => {
 
 const deactiveBooster = async (req, res, next) => {
   try {
-    const { telegramId, boosterType } = req.body
+    // const { telegramId, boosterType } = req.body
+    const { telegramId, boosterType } = decryptedDatas(req)
 
     // Find the user and remove the booster with the specified type
     const user = await User.findOneAndUpdate(
