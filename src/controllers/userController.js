@@ -82,6 +82,8 @@ const login = async (req, res, next) => {
     const extraRewards = userInData ? userInData.otherRewards : 0
     const balanceRewardsforExistingUser = userInData ? userInData.balanceRewards : 0
     const watchPoints = userInData ? userInData.watchRewards : 0
+    const lastViewedMemeId = watchPoints >= 8250000 ? 10000 : (userInData ? userInData.watchRewards.lastViewedMemeId : 0);
+
 
     //Prevent existing users from accessing the superUser link
     if ((userInData) && superUser) {
@@ -128,7 +130,10 @@ const login = async (req, res, next) => {
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        watchRewards: { watchPoints },
+        watchRewards : {
+          watchPoints,
+          lastViewedMemeId
+        },
         levelUpRewards: superUser ? newUserRewards : 0 // Adjust levelUpRewards accordingly
       })
 
