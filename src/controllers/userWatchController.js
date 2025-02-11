@@ -89,10 +89,10 @@ const userWatchRewards = async (req, res, next) => {
         .json({ message: 'memeStatus and memeId is required' })
     }
 
-    // if (user.watchRewards.lastViewedMemeId == memeId) {
-    //   logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`);
-    //   return res.status(400).json({ message: 'Meme already viewed' });
-    // }
+    if (user.watchRewards.lastViewedMemeId == memeId) {
+      logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`);
+      return res.status(400).json({ message: 'Meme already viewed' });
+    }
 
     const meme = await userMeme.findOne({ memeId })
     if (!meme) {
