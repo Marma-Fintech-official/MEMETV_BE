@@ -16,7 +16,6 @@ const {
 } = require('../helpers/constants')
 
 const TOTALREWARDS_LIMIT = 21000000000
-// const TOTALREWARDS_LIMIT = 220
 const fs = require('fs')
 const path = require('path')
 
