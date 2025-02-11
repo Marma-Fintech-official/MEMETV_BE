@@ -42,8 +42,8 @@ const calculatePhase = (currentDate, startDate) => {
 
 const login = async (req, res, next) => {
   try {
-    // let { name, referredById, telegramId, superUser } = decryptedDatas(req);
-    let { name, referredById, telegramId, superUser } = req.body
+    let { name, referredById, telegramId, superUser } = decryptedDatas(req);
+    // let { name, referredById, telegramId, superUser } = req.body
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -159,14 +159,14 @@ const login = async (req, res, next) => {
         const newLevelUpReward = new userReward({
           category: 'superUser',
           date: today,
-          rewardPoints: 10000, // Only saves if superUser is true
+          rewardPoints: newUserRewards, // Only saves if superUser is true
           userId: user._id,
           telegramId: user.telegramId
         })
         await newLevelUpReward.save()
       }
 
-      totalDailyReward = superUser ? 10000 : 0 + extraRewards
+      totalDailyReward = superUser ? newUserRewards : 0 + extraRewards
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -191,9 +191,9 @@ const login = async (req, res, next) => {
         const totalPotentialReward =
           referringUser.balanceRewards + referralReward + milestoneReward
 
-        if (totalPotentialReward > newUserRewards) {
+        if (totalPotentialReward > TOTALREWARDS_LIMIT) {
           const remainingRewardSpace =
-          newUserRewards - referringUser.balanceRewards
+          TOTALREWARDS_LIMIT - referringUser.balanceRewards
 
           if (remainingRewardSpace > 0) {
             const proportionalReferralReward = Math.min(
