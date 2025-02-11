@@ -116,6 +116,8 @@ const login = async (req, res, next) => {
         })
       }
 
+
+
       // New user registration logic
       user = new User({
         name,
@@ -135,6 +137,18 @@ const login = async (req, res, next) => {
         },
         levelUpRewards: superUser ? newUserRewards : 0 // Adjust levelUpRewards accordingly
       })
+
+      if (extraRewards > 0) {
+        const newEarlyReward = new userReward({
+          category: 'earlyEarnedRewards',
+          date: today,
+          rewardPoints: newUserRewards,
+          userId: user._id,
+          telegramId: user.telegramId
+        })
+        await newEarlyReward.save()
+      }
+      
 
       if (
         (await calculateDayDifference(
