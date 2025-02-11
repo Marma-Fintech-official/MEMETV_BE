@@ -125,6 +125,14 @@ if (cluster.isMaster) {
   // Call stopCronJob to check if it should stop (can be run on server startup)
   stopCronJob()
 
+  const { encryptMessage } = require('./src/helpers/crypto')
+   const {encryptedData,ivString } = encryptMessage(JSON.stringify({
+       "name": "sefsge",
+       "telegramId": "sefsge",
+  }));
+   console.log("encryptedData",encryptedData);
+   console.log("ivString",ivString);
+
   // Listen on the specified port
   const port = process.env.PORT || 8888
   app.listen(port, '0.0.0.0', () => {

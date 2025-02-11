@@ -3,7 +3,14 @@ const bcrypt = require('bcryptjs');
 const Admin = require('../models/adminModel');
 const jwt = require('jsonwebtoken');
 require('dotenv').config(); 
-const TokenBlacklist = require('../models/tokenBlacklist');
+const { addToBlacklist, isTokenBlacklisted } = require('../helper/tokenHandler')
+const { verifyToken, createToken } = require('../helper/token')
+
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict'
+};
 
 const adminLogin = async (req, res) => {
     try {
@@ -21,12 +28,10 @@ const adminLogin = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign(
-           { adminId : admin._id, email : admin.email },
-           process.env.JWT_SECRET,
-           {expiresIn : '1h'}
-        );
+        const token = await createToken({ id: admin._id });
 
+        res.cookie('id', admin._id.toString(), COOKIE_OPTIONS); // Use employee._id
+        res.cookie('token', token.toString(), COOKIE_OPTIONS);
         res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
         console.error('Error during admin login:', error);
@@ -37,9 +42,14 @@ const adminLogin = async (req, res) => {
 // Update Admin Password
    const updatePassword=  async (req, res) => {
     try {
-        const { email, oldPassword, newPassword } = req.body;
+        const { email, oldPassword, newPassword, confirmNewPassword } = req.body;
 
         const admin = await Admin.findOne({ email });
+            // Validate required fields
+       if (!email || !oldPassword || !newPassword || !confirmNewPassword) {
+                return res.status(400).json({ message: "All fields are required" });
+            }
+    
         if (!admin) {
             return res.status(404).json({ message: 'Admin not found' });
         }
@@ -49,13 +59,18 @@ const adminLogin = async (req, res) => {
             return res.status(400).json({ message: 'Old password is incorrect' });
         }
 
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({ message: "New password and confirm password do not match" });
+        }
+
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         admin.password = hashedPassword;
         await admin.save();
 
         res.json({ message: 'Password updated successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error updating password:", error);
+        res.status(500).json({ message: 'Failed to reset password', error });
     }
 }
 
@@ -68,10 +83,16 @@ const adminLogout = async (req, res) => {
             return res.status(400).json({ message: 'No token provided' });
         }
 
-        // Save the token in the blacklist to prevent reuse
-        await TokenBlacklist.create({ token });
+        // Check if the token is already blacklisted
+      if (await isTokenBlacklisted(token)) {
+        return res.status(401).send({ message: 'Token is already blacklisted' });
+    }
+    await addToBlacklist(token);
+    // Clear the token from cookies
+    res.clearCookie('id');
+    res.clearCookie('token');
 
-        res.status(200).json({ message: 'Logout successful' });
+    return res.status(200).json({ message: 'Logged out successful' });
     } catch (error) {
         console.error('Error during logout:', error);
         res.status(500).json({ message: 'Server error' });
@@ -133,29 +154,6 @@ const getTotalusers = async (req, res) => {
     }
 };
 
-
-
-
-// const getTotalRewards = async (req, res) => {
-//     try {
-//         const result = await User.aggregate([
-//             {
-//                 $group: {
-//                     _id: null,
-//                     balanceRewards: { $sum: "$balanceRewards" }  // Summing up all users' rewards
-//                 }
-//             }
-//         ]);
-
-//         const balanceRewards = result.length > 0 ? result[0].balanceRewards : 0;
-
-//         res.status(200).json({ balanceRewards });
-//     } catch (error) {
-//         console.error("Error fetching total rewards:", error);
-//         res.status(500).json({ error: "Internal server error" });
-//     }
-// };
-
 const individualsRewards = async (req, res)=>{
     try {
         const users = await User.find({}, 'name balanceRewards');  // Selecting only specific fields
@@ -171,8 +169,33 @@ const individualsRewards = async (req, res)=>{
     }
 }
 
+const protect = async (req, res, next) => {
+    try {
+        let token;
+  
+        if (
+            req.headers.authorization &&
+            req.headers.authorization.startsWith('Bearer')
+        ) {
+            token = req.headers.authorization.split(' ')[1];
+  
+            // Check if the token is blacklisted
+            if (await isTokenBlacklisted(token)) {
+                return res.status(401).json({ message: 'Token is blacklisted' });
+            }
+  
+            // Verify the token
+            const decoded = await verifyToken(token);
+            req.user = await Admin.findById(decoded.id).select('-password');
+            next();
+        } else {
+            return res.status(401).json({ message: 'Unauthorized - No token provided' });
+        }
+    } catch (error) {
+        console.error('Unexpected error in protect middleware:', error.message);
+        return res.status(500).json({ message: 'Invaild token' });
+    }
+  };
 
 
-
-
-module.exports = {adminLogin, updatePassword, adminLogout, getTotalusers, individualsRewards};
+module.exports = {adminLogin, updatePassword, adminLogout, getTotalusers, individualsRewards, protect};
