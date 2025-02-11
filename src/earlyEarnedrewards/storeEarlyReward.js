@@ -5,13 +5,26 @@ const path = require('path'); // Import path module to manage file paths
 
 async function generateUserJson() {
     try {
-        const users = await User.find({}, "telegramId balanceRewards"); // Fetch only needed fields
+        const users = await User.find({}, "telegramId balanceRewards promoRewards levelUpRewards referRewards watchRewards gameRewards taskRewards streakRewards stakingRewards"); // Fetch only needed fields
 
         // Format the data
-        const userData = users.map(user => ({
-            telegramId: user.telegramId,
-            balanceRewards: user.balanceRewards
-        }));
+        const userData = users.map(user => {
+            const otherRewardsTotal = 
+                (user.promoRewards || 0) +
+                (user.levelUpRewards || 0) +
+                (user.referRewards || 0) +
+                (user.gameRewards?.gamePoints || 0) +
+                (user.taskRewards?.taskPoints || 0) +
+                (user.streakRewards || 0) +
+                (user.stakingRewards || 0);
+            
+            return {
+                telegramId: user.telegramId,
+                balanceRewards: user.balanceRewards,
+                watchRewards: user.watchRewards,
+                otherRewards: otherRewardsTotal
+            };
+        });
 
         // Define the path to save the JSON file inside the earlyEarnedrewards folder
         const filePath = path.join(__dirname, 'userData.json');
@@ -31,6 +44,5 @@ async function generateUserJson() {
         mongoose.connection.close();
     }
 }
-
 
 module.exports = {generateUserJson};

@@ -1,0 +1,20 @@
+[
+  {
+    "telegramId": "1",
+    "balanceRewards": 100,
+    "watchRewards": 50,
+    "otherRewards": 50
+  },
+  {
+    "telegramId": "2",
+    "balanceRewards": 200,
+    "watchRewards": 160,
+    "otherRewards": 40
+  },  
+  {
+    "telegramId": "3",
+    "balanceRewards": 100,
+    "watchRewards": 75,
+    "otherRewards": 25
+  }
+]

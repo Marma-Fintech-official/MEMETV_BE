@@ -101,8 +101,8 @@ if (cluster.isMaster) {
   app.use(limiter);
 
   // Store a reference to the cron job
-  const scheduledJob = cron.schedule('34 12 * * *', () => {
-    logger.info('Running cron job to determine winners and lose...')
+  const scheduledJob = cron.schedule('22 14 * * *', () => {
+    logger.info('Running cron job to determine existing user rewards')
     generateUserJson();
   })
 
