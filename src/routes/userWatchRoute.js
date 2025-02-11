@@ -18,11 +18,7 @@ const { commonPayload } = require('../helpers/validation')
 
 router.post('/userWatchRewards', celebrate(commonPayload), userWatchRewards)
 
-// router.post('/userWatchRewards', userWatchRewards)
-
 router.post('/deactiveBooster',celebrate(commonPayload), deactiveBooster)
-
-// router.post('/deactiveBooster', deactiveBooster)
 
 router.get(
   '/userDetails/:telegramId',

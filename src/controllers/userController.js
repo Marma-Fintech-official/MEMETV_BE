@@ -43,7 +43,6 @@ const calculatePhase = (currentDate, startDate) => {
 const login = async (req, res, next) => {
   try {
     let { name, referredById, telegramId, superUser } = decryptedDatas(req);
-    // let { name, referredById, telegramId, superUser } = req.body
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -78,7 +77,18 @@ const login = async (req, res, next) => {
     }
     // Find user in userData.json
     const userInData = userData.find(u => u.telegramId === telegramId)
-    const extraRewards = userInData ? userInData.balanceRewards : 0
+    const extraRewards = userInData ? userInData.otherRewards : 0
+    const balanceRewardsforExistingUser = userInData ? userInData.balanceRewards : 0
+    const watchPoints = userInData ? userInData.watchRewards : 0
+    const lastViewedMemeId = watchPoints >= 8250000 ? 10000 : (userInData ? userInData.watchRewards.lastViewedMemeId : 0);
+
+
+    //Prevent existing users from accessing the superUser link
+    if ((userInData) && superUser) {
+      return res.status(403).json({
+        error: "You are already an existing user and cannot access the superUser link.",
+      });
+    }
 
     if (!user) {
       // Before creating a new user, check if the rewards limit is exceeded
@@ -92,7 +102,7 @@ const login = async (req, res, next) => {
       const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed
 
       // Determine rewards for new user
-      let newUserRewards = (superUser ? 10000 : 0) + extraRewards
+      let newUserRewards = (superUser ? 10000 : 0) + balanceRewardsforExistingUser
 
       // If the user is a superUser and their rewards exceed available space, adjust it
       if (superUser && newUserRewards > availableSpace) {
@@ -118,8 +128,12 @@ const login = async (req, res, next) => {
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        levelUpRewards: superUser ? newUserRewards : 0, // Adjust levelUpRewards accordingly
-      });
+        watchRewards : {
+          watchPoints,
+          lastViewedMemeId
+        },
+        levelUpRewards: superUser ? newUserRewards : 0 // Adjust levelUpRewards accordingly
+      })
 
       if (
         (await calculateDayDifference(
@@ -166,7 +180,7 @@ const login = async (req, res, next) => {
         await newLevelUpReward.save()
       }
 
-      totalDailyReward = superUser ? newUserRewards : 0 + extraRewards
+      totalDailyReward = superUser ? newUserRewards : 0 + newUserRewards
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -193,7 +207,7 @@ const login = async (req, res, next) => {
 
         if (totalPotentialReward > TOTALREWARDS_LIMIT) {
           const remainingRewardSpace =
-          TOTALREWARDS_LIMIT - referringUser.balanceRewards
+            TOTALREWARDS_LIMIT - referringUser.balanceRewards
 
           if (remainingRewardSpace > 0) {
             const proportionalReferralReward = Math.min(
@@ -421,7 +435,6 @@ const login = async (req, res, next) => {
 const userGameRewards = async (req, res, next) => {
   try {
     const { telegramId, boosters, gamePoints } = decryptedDatas(req);
-    // const { telegramId, boosters, gamePoints } = req.body
 
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
@@ -633,8 +646,6 @@ const userGameRewards = async (req, res, next) => {
 const userTaskRewards = async (req, res, next) => {
   try {
     const { telegramId, taskPoints, channel } = decryptedDatas(req);
-
-    // const { telegramId, taskPoints, channel } = req.body
 
     logger.info(
       `Received request to add task rewards for user with telegramId: ${telegramId}`
@@ -1056,7 +1067,6 @@ const purchaseGameCards = async (req, res, next) => {
 const stakingRewards = async (req, res, next) => {
   try {
     const { stakingId } = decryptedDatas(req);
-    // const { stakingId } = req.body
 
     if (!isValidObjectId(stakingId)) {
       logger.warn(`Invalid stakingId format: ${stakingId}`)

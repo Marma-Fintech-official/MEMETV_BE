@@ -14,13 +14,7 @@ const { commonPayload } = require('../helpers/validation');
 
 router.post('/login', celebrate(commonPayload), login);
 
-// router.post('/login', login);
-
 router.post('/userGameRewards', celebrate(commonPayload), userGameRewards);
-
-// router.post('/userGameRewards', userGameRewards);
-
-// router.post('/userTaskRewards',  userTaskRewards);
 
 router.post('/userTaskRewards', celebrate(commonPayload), userTaskRewards);
 
@@ -29,8 +23,6 @@ router.post('/purchaseBooster', celebrate(commonPayload), purchaseBooster);
 router.post('/purchaseGameCards', celebrate(commonPayload), purchaseGameCards);
 
 router.post('/stakingRewards', celebrate(commonPayload), stakingRewards);
-
-// router.post('/stakingRewards', stakingRewards);
 
 router.get("/getMintedTokens", getMintedTokens)
 
