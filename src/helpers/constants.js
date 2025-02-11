@@ -1,19 +1,19 @@
 const memeThresholds = [
   { memeIndexLimit: 0, level: 1 },
-  { memeIndexLimit: 10, level: 2 },
-  { memeIndexLimit: 20, level: 3 },
-  { memeIndexLimit: 30, level: 4 },
-  { memeIndexLimit: 40, level: 5 },
-  { memeIndexLimit: 50, level: 6 }
+  { memeIndexLimit: 500, level: 2 },
+  { memeIndexLimit: 1500, level: 3 },
+  { memeIndexLimit: 3000, level: 4 },
+  { memeIndexLimit: 5000, level: 5 },
+  { memeIndexLimit: 7500, level: 6 }
 ]
 
 const watchRewardsPerMeme = [
-  1, // Level 1
-  2, // Level 2
-  4, // Level 3
-  6, // Level 4
-  8, // Level 5
-  10 // Level 6
+  500, // Level 1
+  600, // Level 2
+  700, // Level 3
+  800, // Level 4
+  900, // Level 5
+  1000, // Level 6
 ]
 
 // Milestones for referrals and associated rewards
