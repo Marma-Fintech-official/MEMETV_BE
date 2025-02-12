@@ -3,7 +3,7 @@ const router = express.Router()
 const { celebrate, Joi, errors, Segments } = require('celebrate')
 const {
   userWatchRewards,
-  deactiveBooster,
+  activateBooster,
   userDetails,
   boosterDetails,
   popularUser,
@@ -20,7 +20,7 @@ const { commonPayload } = require('../helpers/validation')
 
 router.post('/userWatchRewards', userWatchRewards)
 
-router.post('/deactiveBooster', deactiveBooster)
+router.post('/activateBooster', activateBooster)
 
 router.get(
   '/userDetails/:telegramId',
