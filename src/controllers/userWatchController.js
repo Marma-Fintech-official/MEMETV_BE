@@ -204,40 +204,47 @@ const userWatchRewards = async (req, res, next) => {
   }
 }
 
-const deactiveBooster = async (req, res, next) => {
+const activateBooster = async (req, res, next) => {
   try {
-    // const { telegramId, boosterType } = req.body
-    const { telegramId, boosterType } = decryptedDatas(req)
+    // const { telegramId, booster } = req.body;
+    const { telegramId, booster } = decryptedDatas(req)
 
-    // Find the user and remove the booster with the specified type
-    const user = await User.findOneAndUpdate(
-      { telegramId, 'boosters.type': boosterType }, // Match the user and booster type
-      { $pull: { boosters: { type: boosterType } } }, // Remove the booster from the array
-      { new: true } // Return the updated document
-    )
+    // Find the user
+    const user = await User.findOne({ telegramId });
 
     if (!user) {
-      return res.status(404).json({
-        message: 'User not found or booster not active'
-      })
+      return res.status(404).json({ message: 'User not found' });
     }
 
+    // Iterate over each booster in the request body
+    booster.forEach((reqBooster) => {
+      const boosterIndex = user.boosters.findIndex(b => b.type === reqBooster.type);
+
+      if (boosterIndex !== -1) {
+        if (user.boosters[boosterIndex].count > reqBooster.count) {
+          user.boosters[boosterIndex].count -= reqBooster.count;
+        } else {
+          // Remove booster if count reaches 0
+          user.boosters.splice(boosterIndex, 1);
+        }
+      }
+    });
+
+    // Save the updated user document
+    await user.save();
+
     res.status(200).json({
-      message: `Booster of type ${boosterType} deactivated successfully`,
-      user
-    })
+      message: 'Boosters activated successfully',
+    });
+
   } catch (err) {
-    logger.error(
-      `Error processing booster deactivation for telegramId: ${
-        telegramId || 'unknown'
-      } - ${err.message}`
-    )
-    res.status(500).json({
-      message: 'Something went wrong'
-    })
-    next(err)
+    logger.error(`Error processing booster activation for telegramId: ${telegramId || 'unknown'} - ${err.message}`);
+    res.status(500).json({ message: 'Something went wrong' });
+    next(err);
   }
-}
+};
+
+
 
 const userDetails = async (req, res, next) => {
   try {
@@ -751,7 +758,7 @@ const getMemes = async (req, res) => {
 
 module.exports = {
   userWatchRewards,
-  deactiveBooster,
+  activateBooster,
   userDetails,
   boosterDetails,
   popularUser,
