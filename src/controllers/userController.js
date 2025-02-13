@@ -117,8 +117,7 @@ const updateLevel = async (user, isFromStaking = false) => {
 
 const login = async (req, res, next) => {
   try {
-    // let { name, referredById, telegramId, superUser } = decryptedDatas(req);
-    let { name, referredById, telegramId, superUser, influencerUser } = req.body
+    let { name, referredById, telegramId, superUser,influencerUser } = decryptedDatas(req);
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -442,8 +441,7 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    // const { telegramId, boosters, gamePoints } = decryptedDatas(req);
-    const { telegramId, boosters, gamePoints } = req.body
+    const { telegramId, boosters, gamePoints } = decryptedDatas(req);
 
     const now = new Date()
     const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
