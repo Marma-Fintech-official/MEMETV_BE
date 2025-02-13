@@ -28,7 +28,7 @@ const userSchema = mongoose.Schema(
     },
     levelUpRewards: {
       type: Number,
-      default: 500
+      default: 0
     },
     referRewards: {
       type: Number,
@@ -59,6 +59,10 @@ const userSchema = mongoose.Schema(
       }
     },
     spendingRewards: {
+      type: Number,
+      default: 0
+    },
+    signUpRewards:{
       type: Number,
       default: 0
     },
@@ -114,6 +118,10 @@ const userSchema = mongoose.Schema(
     level: {
       type: Number,
       default: 1
+    },
+    influencerUser:{
+      type: Boolean,
+      default: false
     },
     lastLogin: { type: Date }, // Track the last login time
     refferalIds: [
