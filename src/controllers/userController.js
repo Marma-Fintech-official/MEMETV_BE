@@ -412,11 +412,19 @@ const login = async (req, res, next) => {
       logger.info(`Login Streak reward already claimed for user ${telegramId}`)
     }
 
-    res.status(201).json({
-      message: 'User logged in successfully',
-      user,
-      currentPhase
-    })
+    if (user) {
+      // Update influencerUser if it was previously false but now being set to true
+      if (!user.influencerUser && influencerUser) {
+        user.influencerUser = true;
+        await user.save(); // Save the updated user
+      }
+    
+      return res.status(200).json({
+        message: 'User logged in successfully',
+        currentPhase,
+        user
+      });
+    }
   } catch (err) {
     logger.error(
       `Error processing login for telegramId: ${req.body.telegramId} - ${err.message}`
