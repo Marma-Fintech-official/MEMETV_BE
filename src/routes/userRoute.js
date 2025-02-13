@@ -12,9 +12,9 @@ const {
 } = require('../controllers/userController');
 const { commonPayload } = require('../helpers/validation');
 
-router.post('/login', celebrate(commonPayload), login);
+router.post('/login',  login);
 
-router.post('/userGameRewards', celebrate(commonPayload), userGameRewards);
+router.post('/userGameRewards',  userGameRewards);
 
 router.post('/userTaskRewards', celebrate(commonPayload), userTaskRewards);
 

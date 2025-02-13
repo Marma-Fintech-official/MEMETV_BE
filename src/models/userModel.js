@@ -56,6 +56,10 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 0
     },
+    signUpRewards:{
+      type: Number,
+      default: 0
+    },
     stakingRewards: {
       type: Number,
       default: 0
@@ -74,6 +78,10 @@ const userSchema = mongoose.Schema(
         default: false
       },
       youtube: {
+        type: Boolean,
+        default: false
+      },
+      telegramCommunity: {
         type: Boolean,
         default: false
       }
@@ -100,6 +108,10 @@ const userSchema = mongoose.Schema(
     level: {
       type: Number,
       default: 1
+    },
+    influencerUser:{
+      type: Boolean,
+      default: false
     },
     lastLogin: { type: Date }, // Track the last login time
     refferalIds: [

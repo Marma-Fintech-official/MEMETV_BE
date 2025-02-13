@@ -115,9 +115,11 @@ const updateLevel = async (user, isFromStaking = false) => {
   }
 };
 
+
 const login = async (req, res, next) => {
   try {
-    let { name, referredById, telegramId, superUser } = decryptedDatas(req);
+    // let { name, referredById, telegramId, superUser } = decryptedDatas(req);
+    let { name, referredById, telegramId, superUser } = req.body
     name = name.trim();
     telegramId = telegramId.trim();
     const refId = generateRefId(); // Generate a refId for new users
@@ -171,20 +173,27 @@ const login = async (req, res, next) => {
         });
       }
 
+       // Define rewards
+       const signUpRewards = superUser ? 10000 : 0;
+       const baseRewards = 500;
+       const totalStartingRewards = signUpRewards + baseRewards + extraRewards;
+
+
       // New user registration logic
       user = new User({
         name,
         telegramId,
         refId,
         referredById,
-        totalRewards: (superUser ? 10000 : 500) + extraRewards,
-        balanceRewards: (superUser ? 10000 : 500) + extraRewards,
+        totalRewards: totalStartingRewards,
+        balanceRewards: totalStartingRewards,
         earlyEarnedRewards: extraRewards,
         referRewards: 0,
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        levelUpRewards: superUser ? 10000 : 500, // Apply the change here
+        levelUpRewards: baseRewards,
+        signUpRewards
       });
 
       await updateLevel(user);
@@ -224,16 +233,28 @@ const login = async (req, res, next) => {
       await user.save();
 
       // Add level-up reward for the new user
-      const newLevelUpReward = new userReward({
-        category: 'levelUp',
+      if (!user.superUser) {
+        const newLevelUpReward = new userReward({
+          category: 'levelUp',
+          date: today,
+          rewardPoints: baseRewards,
+          userId: user._id,
+          telegramId: user.telegramId,
+        });
+        await newLevelUpReward.save();
+      }
+      
+      const newSignUpReward = new userReward({
+        category: 'signUp',
         date: today,
-        rewardPoints: superUser ? 10000 : 500,
+        rewardPoints: signUpRewards,
         userId: user._id,
         telegramId: user.telegramId,
       });
-      await newLevelUpReward.save();
+      await newSignUpReward.save();
 
-      totalDailyReward = superUser ? 10000 : 500 + extraRewards;
+
+      totalDailyReward = totalStartingRewards
 
       // Referral logic for referringUser if applicable
       if (referringUser) {
@@ -490,7 +511,8 @@ const login = async (req, res, next) => {
 
 const userGameRewards = async (req, res, next) => {
   try {
-    const { telegramId, boosters, gamePoints } = decryptedDatas(req);
+    // const { telegramId, boosters, gamePoints } = decryptedDatas(req);
+    const { telegramId, boosters, gamePoints } = req.body;
 
     const now = new Date();
     const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
