@@ -33,6 +33,7 @@ const adminLogin = async (req, res) => {
         res.cookie('id', admin._id.toString(), COOKIE_OPTIONS); // Use employee._id
         res.cookie('token', token.toString(), COOKIE_OPTIONS);
         res.status(200).json({ message: 'Login successful', token });
+        console.log("Generated Token: ", token)
     } catch (error) {
         console.error('Error during admin login:', error);
         res.status(500).json({ message: 'Server error' });
@@ -178,7 +179,11 @@ const protect = async (req, res, next) => {
             req.headers.authorization.startsWith('Bearer')
         ) {
             token = req.headers.authorization.split(' ')[1];
-  
+            console.log("Received Token:", token); // Debugging Step
+
+            if (!token) {
+                return res.status(401).json({ message: 'No token found' });
+            }
             // Check if the token is blacklisted
             if (await isTokenBlacklisted(token)) {
                 return res.status(401).json({ message: 'Token is blacklisted' });
@@ -186,6 +191,8 @@ const protect = async (req, res, next) => {
   
             // Verify the token
             const decoded = await verifyToken(token);
+            console.log("Decoded Token Data:", decoded); // Debugging Step
+
             req.user = await Admin.findById(decoded.id).select('-password');
             next();
         } else {
