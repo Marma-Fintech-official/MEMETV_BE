@@ -86,6 +86,10 @@ const userSchema = mongoose.Schema(
       youtube: {
         type: Boolean,
         default: false
+      },
+      telegramCommunity: {
+        type: Boolean,
+        default: false
       }
     },
     earlyEarnedRewards: {
