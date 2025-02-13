@@ -179,7 +179,6 @@ const protect = async (req, res, next) => {
             req.headers.authorization.startsWith('Bearer')
         ) {
             token = req.headers.authorization.split(' ')[1];
-            console.log("Received Token:", token); // Debugging Step
 
             if (!token) {
                 return res.status(401).json({ message: 'No token found' });
@@ -191,7 +190,6 @@ const protect = async (req, res, next) => {
   
             // Verify the token
             const decoded = await verifyToken(token);
-            console.log("Decoded Token Data:", decoded); // Debugging Step
 
             req.user = await Admin.findById(decoded.id).select('-password');
             next();

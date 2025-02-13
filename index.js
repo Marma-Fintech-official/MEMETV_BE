@@ -17,7 +17,7 @@ const cron = require('node-cron') // Add cron for scheduling tasks
 const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
-  const bot = new TelegramBot(token, {polling: true});
+  const bot = new TelegramBot(token);
 
   // Handle the /start command from Telegram
   bot.onText(/\/start(?:\s+(\w+))?/, (msg, match) => {
