@@ -119,7 +119,7 @@ const updateLevel = async (user, isFromStaking = false) => {
 const login = async (req, res, next) => {
   try {
     // let { name, referredById, telegramId, superUser } = decryptedDatas(req);
-    let { name, referredById, telegramId, superUser } = req.body
+    let { name, referredById, telegramId, superUser,influencerUser } = req.body
     name = name.trim();
     telegramId = telegramId.trim();
     const refId = generateRefId(); // Generate a refId for new users
@@ -174,7 +174,7 @@ const login = async (req, res, next) => {
       }
 
        // Define rewards
-       const signUpRewards = superUser ? 10000 : 0;
+       const signUpRewards = (superUser ? 10000 : 0) + (influencerUser ? 5000 : 0);
        const baseRewards = 500;
        const totalStartingRewards = signUpRewards + baseRewards + extraRewards;
 
@@ -193,7 +193,8 @@ const login = async (req, res, next) => {
         lastLogin: currentDate,
         level: 1,
         levelUpRewards: baseRewards,
-        signUpRewards
+        signUpRewards,
+        influencerUser: !!influencerUser, // Ensure boolean value
       });
 
       await updateLevel(user);
