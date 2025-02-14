@@ -20,6 +20,10 @@ const userDailyrewardSchema =  mongoose.Schema({
         type: Boolean,
         default: false
       },
+      dailyMemeCount: {
+        type: Number,
+        default: 0
+      },
       createdAt: {
         type: Date,
         default: Date.now

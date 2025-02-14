@@ -11,6 +11,7 @@ const {
   multiStreakRewardClaim,
   streakOfStreakRewardClaim,
   userStreaks,
+  watchStreakCheck
 } = require("../controllers/userStreakController");
 const { commonPayload } = require("../helpers/validation");
 
@@ -57,5 +58,13 @@ router.get(
   }),
   userStreaks
 );
+
+router.get("/watchStreakCheck/:telegramId",celebrate({
+  [Segments.PARAMS]: Joi.object().keys({
+    telegramId: Joi.string().required(),
+  }),
+}),
+watchStreakCheck )
+
 router.use(errors());
 module.exports = router;

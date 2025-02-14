@@ -17,13 +17,9 @@ const calculatePhase = (currentDate, startDate) => {
 const TOTALREWARDS_LIMIT = 21000000000
 const totalWatchPointsforEachUser = 8250000
 
-const updateUserDailyReward = async (
-  userId,
-  telegramId,
-  dailyEarnedRewards
-) => {
-  const now = new Date()
-  const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
+const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards, memeIndex) => {
+  const now = new Date();
+  const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
   try {
     // Check if a daily reward record already exists for today
@@ -34,40 +30,42 @@ const updateUserDailyReward = async (
         $gte: new Date(currentDateString),
         $lt: new Date(new Date(currentDateString).setDate(now.getDate() + 1))
       }
-    })
-
-    const totalDailyRewards = dailyEarnedRewards // Combine both earned rewards
+    });
 
     if (dailyReward) {
-      // If a record exists, update the dailyEarnedRewards
-      dailyReward.dailyEarnedRewards += totalDailyRewards
-      await dailyReward.save()
+      // If a record exists for today, increase the daily meme count sequentially
+      let dailyMemeCount = dailyReward.dailyMemeCount + 1; // Continue sequence for today
+
+      dailyReward.dailyEarnedRewards += dailyEarnedRewards;
+      dailyReward.dailyMemeCount = dailyMemeCount;
+      await dailyReward.save();
       logger.info(
-        `Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}`
-      )
+        `Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}, memeCount: ${dailyReward.dailyMemeCount}`
+      );
     } else {
-      // If no record exists, create a new one with combined rewards
+      // If it's a new day, start dailyMemeCount from 1
       dailyReward = new userDailyreward({
         userId,
         telegramId,
-        dailyEarnedRewards: totalDailyRewards,
+        dailyEarnedRewards,
+        dailyMemeCount: 0, // Start fresh for a new day
         createdAt: new Date(currentDateString)
-      })
-      await dailyReward.save()
+      });
+      await dailyReward.save();
       logger.info(
-        `Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${totalDailyRewards}`
-      )
+        `Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${dailyEarnedRewards}, memeCount: 1`
+      );
     }
   } catch (err) {
     logger.error(
       `Error updating daily rewards for telegramId: ${telegramId} - ${err.message}`
-    )
-    res.status(500).json({
-      message: 'Something went wrong'
-    })
-    next(err)
+    );
   }
-}
+};
+
+
+
+
 
 const userWatchRewards = async (req, res, next) => {
   const { telegramId, boosterType, memeId, memeStatus } = req.body
@@ -183,7 +181,7 @@ const userWatchRewards = async (req, res, next) => {
     }
 
     await user.save()
-    await updateUserDailyReward(user._id, telegramId, watchPointsToAdd)
+    await updateUserDailyReward(user._id, telegramId, watchPointsToAdd,user.watchRewards.memeIndex)
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
