@@ -217,156 +217,75 @@ const login = async (req, res, next) => {
 
         referringUser.refferalIds.push({ userId: user._id })
 
-        const referralReward = 10000 // Fixed reward for referring a user
         const numberOfReferrals = referringUser.refferalIds.length
-
         let milestoneReward = 0
 
-        // Check for milestone rewards
+        //  Check for milestone rewards
         for (const milestone of milestones) {
           if (numberOfReferrals === milestone.referrals) {
             milestoneReward += milestone.reward
           }
         }
 
-        const totalPotentialReward =
-          referringUser.balanceRewards + referralReward + milestoneReward
-
-        if (totalPotentialReward > TOTALREWARDS_LIMIT) {
-          const remainingRewardSpace =
-            TOTALREWARDS_LIMIT - referringUser.balanceRewards
-
-          if (remainingRewardSpace > 0) {
-            const proportionalReferralReward = Math.min(
-              referralReward,
-              remainingRewardSpace
-            )
-            const remainingAfterReferral =
-              remainingRewardSpace - proportionalReferralReward
-
-            const proportionalMilestoneReward = Math.min(
-              milestoneReward,
-              remainingAfterReferral
-            )
-
-            // Add only the feasible rewards
-            referringUser.totalRewards +=
-              proportionalReferralReward + proportionalMilestoneReward
-            referringUser.balanceRewards +=
-              proportionalReferralReward + proportionalMilestoneReward
-            referringUser.referRewards +=
-              proportionalReferralReward + proportionalMilestoneReward
-
-            // Save the rewards
-            const referRewardRecord = await userReward.findOne({
-              userId: referringUser._id,
-              category: 'refer',
-              date: today
-            })
-
-            if (referRewardRecord) {
-              referRewardRecord.rewardPoints +=
-                proportionalReferralReward + proportionalMilestoneReward
-              await referRewardRecord.save()
-            } else {
-              const newReward = new userReward({
-                category: 'refer',
-                date: today,
-                rewardPoints:
-                  proportionalReferralReward + proportionalMilestoneReward,
-                userId: referringUser._id,
-                telegramId: referringUser.telegramId
-              })
-              await newReward.save()
-            }
-
-            let referringUserDailyReward = await userDailyreward.findOne({
-              userId: referringUser._id,
-              createdAt: { $gte: today }
-            })
-
-            if (referringUserDailyReward) {
-              referringUserDailyReward.dailyEarnedRewards +=
-                proportionalReferralReward + proportionalMilestoneReward
-              await referringUserDailyReward.save()
-            } else {
-              referringUserDailyReward = new userDailyreward({
-                userId: referringUser._id,
-                telegramId: referringUser.telegramId,
-                dailyEarnedRewards:
-                  proportionalReferralReward + proportionalMilestoneReward,
-                createdAt: today
-              })
-              await referringUserDailyReward.save()
-            }
-
-            const twoXBooster = referringUser.boosters.find(
-              booster => booster.type === '2x'
-            )
-            if (twoXBooster) {
-              twoXBooster.count += 5
-            } else {
-              referringUser.boosters.push({ type: '2x', count: 5 })
-            }
-          } else {
-            console.warn(
-              `User ${referringUser.name} has reached the total rewards limit of ${TOTALREWARDS_LIMIT}. No additional rewards granted.`
-            )
-          }
+        if (referringUser.influencerUser) {
+          //  If influencer, add ONLY 5000 referRewards + milestone rewards
+          const influencerBonus = 5000
+          referringUser.referRewards += influencerBonus + milestoneReward
+          referringUser.balanceRewards += influencerBonus + milestoneReward
+          referringUser.totalRewards += influencerBonus + milestoneReward
         } else {
-          referringUser.totalRewards += referralReward + milestoneReward
-          referringUser.balanceRewards += referralReward + milestoneReward
+          // Normal referral logic (10000 + milestone rewards)
+          const referralReward = 10000
           referringUser.referRewards += referralReward + milestoneReward
-
-          const referRewardRecord = await userReward.findOne({
-            userId: referringUser._id,
-            category: 'refer',
-            date: today
-          })
-
-          if (referRewardRecord) {
-            referRewardRecord.rewardPoints += referralReward + milestoneReward
-            await referRewardRecord.save()
-          } else {
-            const newReward = new userReward({
-              category: 'refer',
-              date: today,
-              rewardPoints: referralReward + milestoneReward,
-              userId: referringUser._id,
-              telegramId: referringUser.telegramId
-            })
-            await newReward.save()
-          }
-
-          let referringUserDailyReward = await userDailyreward.findOne({
-            userId: referringUser._id,
-            createdAt: { $gte: today }
-          })
-
-          if (referringUserDailyReward) {
-            referringUserDailyReward.dailyEarnedRewards +=
-              referralReward + milestoneReward
-            await referringUserDailyReward.save()
-          } else {
-            referringUserDailyReward = new userDailyreward({
-              userId: referringUser._id,
-              telegramId: referringUser.telegramId,
-              dailyEarnedRewards: referralReward + milestoneReward,
-              createdAt: today
-            })
-            await referringUserDailyReward.save()
-          }
-
-          const twoXBooster = referringUser.boosters.find(
-            booster => booster.type === '2x'
-          )
-          if (twoXBooster) {
-            twoXBooster.count += 5
-          } else {
-            referringUser.boosters.push({ type: '2x', count: 5 })
-          }
+          referringUser.balanceRewards += referralReward + milestoneReward
+          referringUser.totalRewards += referralReward + milestoneReward
         }
 
+        //  Save rewards in `userReward`
+        const referRewardRecord = await userReward.findOne({
+          userId: referringUser._id,
+          category: 'refer',
+          date: today
+        })
+
+        if (referRewardRecord) {
+          referRewardRecord.rewardPoints +=
+            milestoneReward + (referringUser.influencerUser ? 5000 : 10000)
+          await referRewardRecord.save()
+        } else {
+          const newReward = new userReward({
+            category: 'refer',
+            date: today,
+            rewardPoints:
+              milestoneReward + (referringUser.influencerUser ? 5000 : 10000),
+            userId: referringUser._id,
+            telegramId: referringUser.telegramId
+          })
+          await newReward.save()
+        }
+
+        //  Save rewards in `dailyRewards`
+        let referringUserDailyReward = await userDailyreward.findOne({
+          userId: referringUser._id,
+          createdAt: { $gte: today }
+        })
+
+        if (referringUserDailyReward) {
+          referringUserDailyReward.dailyEarnedRewards +=
+            milestoneReward + (referringUser.influencerUser ? 5000 : 10000)
+          await referringUserDailyReward.save()
+        } else {
+          referringUserDailyReward = new userDailyreward({
+            userId: referringUser._id,
+            telegramId: referringUser.telegramId,
+            dailyEarnedRewards:
+              milestoneReward + (referringUser.influencerUser ? 5000 : 10000),
+            createdAt: today
+          })
+          await referringUserDailyReward.save()
+        }
+
+        //Update user level
         await referringUser.save()
       }
     } else {
