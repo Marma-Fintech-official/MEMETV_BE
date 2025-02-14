@@ -196,11 +196,11 @@ const login = async (req, res, next) => {
 
       await user.save()
 
-      if (superUser) {
+      if (superUser || influencerUser ) {
         const newLevelUpReward = new userReward({
-          category: 'superUser',
+          category: 'signUp',
           date: today,
-          rewardPoints: newUserRewards, // Only saves if superUser is true
+          rewardPoints: signUpRewards, // Only saves if superUser is true
           userId: user._id,
           telegramId: user.telegramId
         })
@@ -438,12 +438,19 @@ const login = async (req, res, next) => {
     } else {
       logger.info(`Login Streak reward already claimed for user ${telegramId}`)
     }
-
-    res.status(201).json({
-      message: 'User logged in successfully',
-      user,
-      currentPhase
-    })
+    if (user) {
+      // Update influencerUser if it was previously false but now being set to true
+      if (!user.influencerUser && influencerUser) {
+        user.influencerUser = true;
+        await user.save(); // Save the updated user
+      }
+    
+      return res.status(200).json({
+        message: 'User logged in successfully',
+        currentPhase,
+        user
+      });
+    }
   } catch (err) {
     logger.error(
       `Error processing login for telegramId: ${req.body.telegramId} - ${err.message}`
