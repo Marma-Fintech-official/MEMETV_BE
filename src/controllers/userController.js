@@ -116,6 +116,12 @@ const login = async (req, res, next) => {
       if (superUser) signUpRewards += 10000
       if (influencerUser) signUpRewards += 5000
 
+
+      // If referredById exists and the referring user is an influencer, give extra 5000 to the new user
+      if (referringUser && referringUser.influencerUser) {
+        signUpRewards += 5000
+      }
+
       // Determine rewards for new user
       let newUserRewards = signUpRewards + balanceRewardsforExistingUser
 
