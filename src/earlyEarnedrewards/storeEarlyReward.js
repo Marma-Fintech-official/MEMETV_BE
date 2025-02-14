@@ -5,7 +5,7 @@ const path = require('path'); // Import path module to manage file paths
 
 async function generateUserJson() {
     try {
-        const users = await User.find({}, "telegramId balanceRewards promoRewards levelUpRewards referRewards watchRewards gameRewards taskRewards streakRewards stakingRewards"); // Fetch only needed fields
+        const users = await User.find({}, "telegramId balanceRewards signUpRewards promoRewards levelUpRewards referRewards watchRewards gameRewards taskRewards streakRewards stakingRewards"); // Fetch only needed fields
 
         // Format the data
         const userData = users.map(user => {
@@ -16,6 +16,7 @@ async function generateUserJson() {
                 (user.gameRewards?.gamePoints || 0) +
                 (user.taskRewards?.taskPoints || 0) +
                 (user.streakRewards || 0) +
+                (user.signUpRewards || 0) +
                 (user.stakingRewards || 0);
             
             return {

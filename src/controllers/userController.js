@@ -43,6 +43,7 @@ const calculatePhase = (currentDate, startDate) => {
 const login = async (req, res, next) => {
   try {
     let { name, referredById, telegramId, superUser } = decryptedDatas(req);
+    // let { name, referredById, telegramId, superUser, influencerUser } = req.body
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -78,16 +79,23 @@ const login = async (req, res, next) => {
     // Find user in userData.json
     const userInData = userData.find(u => u.telegramId === telegramId)
     const extraRewards = userInData ? userInData.otherRewards : 0
-    const balanceRewardsforExistingUser = userInData ? userInData.balanceRewards : 0
+    const balanceRewardsforExistingUser = userInData
+      ? userInData.balanceRewards
+      : 0
     const watchPoints = userInData ? userInData.watchRewards : 0
-    const lastViewedMemeId = watchPoints >= 8250000 ? 10000 : (userInData ? userInData.watchRewards.lastViewedMemeId : 0);
-
+    const lastViewedMemeId =
+      watchPoints >= 8250000
+        ? 10000
+        : userInData
+        ? userInData.watchRewards.lastViewedMemeId
+        : 0
 
     //Prevent existing users from accessing the superUser link
-    if ((userInData) && superUser) {
+    if (userInData && superUser) {
       return res.status(403).json({
-        error: "You are already an existing user and cannot access the superUser link.",
-      });
+        error:
+          'You are already an existing user and cannot access the superUser link.'
+      })
     }
 
     if (!user) {
@@ -102,7 +110,20 @@ const login = async (req, res, next) => {
       const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed
 
       // Determine rewards for new user
-      let newUserRewards = (superUser ? 10000 : 0) + balanceRewardsforExistingUser
+      // let newUserRewards = (superUser ? 10000 : 0) + balanceRewardsforExistingUser
+
+      let signUpRewards = 0
+      if (superUser) signUpRewards += 10000
+      if (influencerUser) signUpRewards += 5000
+
+
+      // If referredById exists and the referring user is an influencer, give extra 5000 to the new user
+      if (referringUser && referringUser.influencerUser) {
+        signUpRewards += 5000
+      }
+
+      // Determine rewards for new user
+      let newUserRewards = signUpRewards + balanceRewardsforExistingUser
 
       // If the user is a superUser and their rewards exceed available space, adjust it
       if (superUser && newUserRewards > availableSpace) {
@@ -114,8 +135,6 @@ const login = async (req, res, next) => {
           message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`
         })
       }
-
-
 
       // New user registration logic
       user = new User({
@@ -130,11 +149,12 @@ const login = async (req, res, next) => {
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        watchRewards : {
+        watchRewards: {
           watchPoints,
           lastViewedMemeId
         },
-        levelUpRewards: superUser ? newUserRewards : 0 // Adjust levelUpRewards accordingly
+        signUpRewards,
+        influencerUser: !!influencerUser 
       })
 
       if (extraRewards > 0) {
@@ -147,7 +167,6 @@ const login = async (req, res, next) => {
         })
         await newEarlyReward.save()
       }
-      
 
       if (
         (await calculateDayDifference(
@@ -183,11 +202,11 @@ const login = async (req, res, next) => {
 
       await user.save()
 
-      if (superUser) {
+      if (superUser || influencerUser ) {
         const newLevelUpReward = new userReward({
-          category: 'superUser',
+          category: 'signUp',
           date: today,
-          rewardPoints: newUserRewards, // Only saves if superUser is true
+          rewardPoints: signUpRewards, // Only saves if superUser is true
           userId: user._id,
           telegramId: user.telegramId
         })
@@ -204,156 +223,75 @@ const login = async (req, res, next) => {
 
         referringUser.refferalIds.push({ userId: user._id })
 
-        const referralReward = 10000 // Fixed reward for referring a user
         const numberOfReferrals = referringUser.refferalIds.length
-
         let milestoneReward = 0
 
-        // Check for milestone rewards
+        //  Check for milestone rewards
         for (const milestone of milestones) {
           if (numberOfReferrals === milestone.referrals) {
             milestoneReward += milestone.reward
           }
         }
 
-        const totalPotentialReward =
-          referringUser.balanceRewards + referralReward + milestoneReward
-
-        if (totalPotentialReward > TOTALREWARDS_LIMIT) {
-          const remainingRewardSpace =
-            TOTALREWARDS_LIMIT - referringUser.balanceRewards
-
-          if (remainingRewardSpace > 0) {
-            const proportionalReferralReward = Math.min(
-              referralReward,
-              remainingRewardSpace
-            )
-            const remainingAfterReferral =
-              remainingRewardSpace - proportionalReferralReward
-
-            const proportionalMilestoneReward = Math.min(
-              milestoneReward,
-              remainingAfterReferral
-            )
-
-            // Add only the feasible rewards
-            referringUser.totalRewards +=
-              proportionalReferralReward + proportionalMilestoneReward
-            referringUser.balanceRewards +=
-              proportionalReferralReward + proportionalMilestoneReward
-            referringUser.referRewards +=
-              proportionalReferralReward + proportionalMilestoneReward
-
-            // Save the rewards
-            const referRewardRecord = await userReward.findOne({
-              userId: referringUser._id,
-              category: 'refer',
-              date: today
-            })
-
-            if (referRewardRecord) {
-              referRewardRecord.rewardPoints +=
-                proportionalReferralReward + proportionalMilestoneReward
-              await referRewardRecord.save()
-            } else {
-              const newReward = new userReward({
-                category: 'refer',
-                date: today,
-                rewardPoints:
-                  proportionalReferralReward + proportionalMilestoneReward,
-                userId: referringUser._id,
-                telegramId: referringUser.telegramId
-              })
-              await newReward.save()
-            }
-
-            let referringUserDailyReward = await userDailyreward.findOne({
-              userId: referringUser._id,
-              createdAt: { $gte: today }
-            })
-
-            if (referringUserDailyReward) {
-              referringUserDailyReward.dailyEarnedRewards +=
-                proportionalReferralReward + proportionalMilestoneReward
-              await referringUserDailyReward.save()
-            } else {
-              referringUserDailyReward = new userDailyreward({
-                userId: referringUser._id,
-                telegramId: referringUser.telegramId,
-                dailyEarnedRewards:
-                  proportionalReferralReward + proportionalMilestoneReward,
-                createdAt: today
-              })
-              await referringUserDailyReward.save()
-            }
-
-            const twoXBooster = referringUser.boosters.find(
-              booster => booster.type === '2x'
-            )
-            if (twoXBooster) {
-              twoXBooster.count += 5
-            } else {
-              referringUser.boosters.push({ type: '2x', count: 5 })
-            }
-          } else {
-            console.warn(
-              `User ${referringUser.name} has reached the total rewards limit of ${TOTALREWARDS_LIMIT}. No additional rewards granted.`
-            )
-          }
+        if (referringUser.influencerUser) {
+          //  If influencer, add ONLY 5000 referRewards + milestone rewards
+          const influencerBonus = 5000
+          referringUser.referRewards += influencerBonus + milestoneReward
+          referringUser.balanceRewards += influencerBonus + milestoneReward
+          referringUser.totalRewards += influencerBonus + milestoneReward
         } else {
-          referringUser.totalRewards += referralReward + milestoneReward
-          referringUser.balanceRewards += referralReward + milestoneReward
+          // Normal referral logic (10000 + milestone rewards)
+          const referralReward = 10000
           referringUser.referRewards += referralReward + milestoneReward
-
-          const referRewardRecord = await userReward.findOne({
-            userId: referringUser._id,
-            category: 'refer',
-            date: today
-          })
-
-          if (referRewardRecord) {
-            referRewardRecord.rewardPoints += referralReward + milestoneReward
-            await referRewardRecord.save()
-          } else {
-            const newReward = new userReward({
-              category: 'refer',
-              date: today,
-              rewardPoints: referralReward + milestoneReward,
-              userId: referringUser._id,
-              telegramId: referringUser.telegramId
-            })
-            await newReward.save()
-          }
-
-          let referringUserDailyReward = await userDailyreward.findOne({
-            userId: referringUser._id,
-            createdAt: { $gte: today }
-          })
-
-          if (referringUserDailyReward) {
-            referringUserDailyReward.dailyEarnedRewards +=
-              referralReward + milestoneReward
-            await referringUserDailyReward.save()
-          } else {
-            referringUserDailyReward = new userDailyreward({
-              userId: referringUser._id,
-              telegramId: referringUser.telegramId,
-              dailyEarnedRewards: referralReward + milestoneReward,
-              createdAt: today
-            })
-            await referringUserDailyReward.save()
-          }
-
-          const twoXBooster = referringUser.boosters.find(
-            booster => booster.type === '2x'
-          )
-          if (twoXBooster) {
-            twoXBooster.count += 5
-          } else {
-            referringUser.boosters.push({ type: '2x', count: 5 })
-          }
+          referringUser.balanceRewards += referralReward + milestoneReward
+          referringUser.totalRewards += referralReward + milestoneReward
         }
 
+        //  Save rewards in `userReward`
+        const referRewardRecord = await userReward.findOne({
+          userId: referringUser._id,
+          category: 'refer',
+          date: today
+        })
+
+        if (referRewardRecord) {
+          referRewardRecord.rewardPoints +=
+            milestoneReward + (referringUser.influencerUser ? 5000 : 10000)
+          await referRewardRecord.save()
+        } else {
+          const newReward = new userReward({
+            category: 'refer',
+            date: today,
+            rewardPoints:
+              milestoneReward + (referringUser.influencerUser ? 5000 : 10000),
+            userId: referringUser._id,
+            telegramId: referringUser.telegramId
+          })
+          await newReward.save()
+        }
+
+        //  Save rewards in `dailyRewards`
+        let referringUserDailyReward = await userDailyreward.findOne({
+          userId: referringUser._id,
+          createdAt: { $gte: today }
+        })
+
+        if (referringUserDailyReward) {
+          referringUserDailyReward.dailyEarnedRewards +=
+            milestoneReward + (referringUser.influencerUser ? 5000 : 10000)
+          await referringUserDailyReward.save()
+        } else {
+          referringUserDailyReward = new userDailyreward({
+            userId: referringUser._id,
+            telegramId: referringUser.telegramId,
+            dailyEarnedRewards:
+              milestoneReward + (referringUser.influencerUser ? 5000 : 10000),
+            createdAt: today
+          })
+          await referringUserDailyReward.save()
+        }
+
+        //Update user level
         await referringUser.save()
       }
     } else {
@@ -425,12 +363,19 @@ const login = async (req, res, next) => {
     } else {
       logger.info(`Login Streak reward already claimed for user ${telegramId}`)
     }
-
-    res.status(201).json({
-      message: 'User logged in successfully',
-      user,
-      currentPhase
-    })
+    if (user) {
+      // Update influencerUser if it was previously false but now being set to true
+      if (!user.influencerUser && influencerUser) {
+        user.influencerUser = true;
+        await user.save(); // Save the updated user
+      }
+    
+      return res.status(200).json({
+        message: 'User logged in successfully',
+        currentPhase,
+        user
+      });
+    }
   } catch (err) {
     logger.error(
       `Error processing login for telegramId: ${req.body.telegramId} - ${err.message}`

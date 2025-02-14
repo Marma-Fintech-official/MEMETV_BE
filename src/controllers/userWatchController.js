@@ -2,6 +2,7 @@ const User = require('../models/userModel')
 const userReward = require('../models/userRewardModel')
 const userDailyreward = require('../models/userDailyrewardsModel')
 const userMeme = require('../models/userMemeModel')
+const userHistory = require('../models/userHistoryModel')
 const { watchRewardsPerMeme, memeThresholds } = require('../helpers/constants')
 const logger = require('../helpers/logger')
 const { decryptedDatas } = require('../helpers/Decrypt')
@@ -17,9 +18,14 @@ const calculatePhase = (currentDate, startDate) => {
 const TOTALREWARDS_LIMIT = 21000000000
 const totalWatchPointsforEachUser = 8250000
 
-const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards, memeIndex) => {
-  const now = new Date();
-  const currentDateString = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
+const updateUserDailyReward = async (
+  userId,
+  telegramId,
+  dailyEarnedRewards,
+  memeIndex
+) => {
+  const now = new Date()
+  const currentDateString = now.toISOString().split('T')[0] // "YYYY-MM-DD"
 
   try {
     // Check if a daily reward record already exists for today
@@ -30,18 +36,18 @@ const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards, mem
         $gte: new Date(currentDateString),
         $lt: new Date(new Date(currentDateString).setDate(now.getDate() + 1))
       }
-    });
+    })
 
     if (dailyReward) {
       // If a record exists for today, increase the daily meme count sequentially
-      let dailyMemeCount = dailyReward.dailyMemeCount + 1; // Continue sequence for today
+      let dailyMemeCount = dailyReward.dailyMemeCount + 1 // Continue sequence for today
 
-      dailyReward.dailyEarnedRewards += dailyEarnedRewards;
-      dailyReward.dailyMemeCount = dailyMemeCount;
-      await dailyReward.save();
+      dailyReward.dailyEarnedRewards += dailyEarnedRewards
+      dailyReward.dailyMemeCount = dailyMemeCount
+      await dailyReward.save()
       logger.info(
         `Updated daily reward for telegramId: ${telegramId} on ${currentDateString}, totalRewards: ${dailyReward.dailyEarnedRewards}, memeCount: ${dailyReward.dailyMemeCount}`
-      );
+      )
     } else {
       // If it's a new day, start dailyMemeCount from 1
       dailyReward = new userDailyreward({
@@ -50,22 +56,18 @@ const updateUserDailyReward = async (userId, telegramId, dailyEarnedRewards, mem
         dailyEarnedRewards,
         dailyMemeCount: 0, // Start fresh for a new day
         createdAt: new Date(currentDateString)
-      });
-      await dailyReward.save();
+      })
+      await dailyReward.save()
       logger.info(
         `Created new daily reward for telegramId: ${telegramId} on ${currentDateString}, dailyEarnedRewards: ${dailyEarnedRewards}, memeCount: 1`
-      );
+      )
     }
   } catch (err) {
     logger.error(
       `Error updating daily rewards for telegramId: ${telegramId} - ${err.message}`
-    );
+    )
   }
-};
-
-
-
-
+}
 
 const userWatchRewards = async (req, res, next) => {
   // const { telegramId, boosterType, memeId, memeStatus } = req.body
@@ -88,16 +90,20 @@ const userWatchRewards = async (req, res, next) => {
         .json({ message: 'memeStatus and memeId is required' })
     }
 
-    if (user.watchRewards.lastViewedMemeId == memeId) {
-      logger.warn(`Meme ID ${memeId} already viewed by telegramId: ${telegramId}`);
-      return res.status(400).json({ message: 'Meme already viewed' });
-    }
-
     const meme = await userMeme.findOne({ memeId })
     if (!meme) {
       logger.warn(`Meme not found for memeId: ${memeId}`)
       return res.status(404).json({ message: 'Meme not found' })
     }
+
+    const existingRecord = await userHistory.findOne({ telegramId, memeId })
+    if (existingRecord) {
+      logger.warn(`Meme ID ${memeId} already used by telegramId: ${telegramId}`)
+      return res.status(400).json({ message: 'Meme already used' })
+    }
+
+    // Save new meme record in userHistory
+    await userHistory.create({ telegramId, memeId })
 
     if (memeStatus) {
       meme.like += 1
@@ -132,11 +138,9 @@ const userWatchRewards = async (req, res, next) => {
     let watchPointsToAdd = Math.min(watchPoints, remainingWatchSpace)
 
     if (watchPointsToAdd === 0) {
-      return res
-        .status(403)
-        .json({
-          message: `User watch points limit of ${totalWatchPointsforEachUser} reached.`
-        })
+      return res.status(403).json({
+        message: `User watch points limit of ${totalWatchPointsforEachUser} reached.`
+      })
     }
 
     const totalRewardsInSystem = await User.aggregate([
@@ -150,11 +154,9 @@ const userWatchRewards = async (req, res, next) => {
     watchPointsToAdd = Math.min(watchPointsToAdd, availableSpace)
 
     if (watchPointsToAdd === 0) {
-      return res
-        .status(403)
-        .json({
-          message: `Total rewards limit of ${TOTALREWARDS_LIMIT} reached across all users.`
-        })
+      return res.status(403).json({
+        message: `Total rewards limit of ${TOTALREWARDS_LIMIT} reached across all users.`
+      })
     }
 
     user.watchRewards.watchPoints += watchPointsToAdd
@@ -182,7 +184,12 @@ const userWatchRewards = async (req, res, next) => {
     }
 
     await user.save()
-    await updateUserDailyReward(user._id, telegramId, watchPointsToAdd,user.watchRewards.memeIndex)
+    await updateUserDailyReward(
+      user._id,
+      telegramId,
+      watchPointsToAdd,
+      user.watchRewards.memeIndex
+    )
 
     return res.status(200).json({
       message: 'Watch rewards processed successfully',
@@ -204,45 +211,48 @@ const userWatchRewards = async (req, res, next) => {
 
 const activateBooster = async (req, res, next) => {
   try {
-    // const { telegramId, booster } = req.body;
+    // const { telegramId, booster } = req.body
     const { telegramId, booster } = decryptedDatas(req)
 
     // Find the user
-    const user = await User.findOne({ telegramId });
+    const user = await User.findOne({ telegramId })
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User not found' })
     }
 
     // Iterate over each booster in the request body
-    booster.forEach((reqBooster) => {
-      const boosterIndex = user.boosters.findIndex(b => b.type === reqBooster.type);
+    booster.forEach(reqBooster => {
+      const boosterIndex = user.boosters.findIndex(
+        b => b.type === reqBooster.type
+      )
 
       if (boosterIndex !== -1) {
         if (user.boosters[boosterIndex].count > reqBooster.count) {
-          user.boosters[boosterIndex].count -= reqBooster.count;
+          user.boosters[boosterIndex].count -= reqBooster.count
         } else {
           // Remove booster if count reaches 0
-          user.boosters.splice(boosterIndex, 1);
+          user.boosters.splice(boosterIndex, 1)
         }
       }
-    });
+    })
 
     // Save the updated user document
-    await user.save();
+    await user.save()
 
     res.status(200).json({
-      message: 'Boosters activated successfully',
-    });
-
+      message: 'Boosters activated successfully'
+    })
   } catch (err) {
-    logger.error(`Error processing booster activation for telegramId: ${telegramId || 'unknown'} - ${err.message}`);
-    res.status(500).json({ message: 'Something went wrong' });
-    next(err);
+    logger.error(
+      `Error processing booster activation for telegramId: ${
+        telegramId || 'unknown'
+      } - ${err.message}`
+    )
+    res.status(500).json({ message: 'Something went wrong' })
+    next(err)
   }
-};
-
-
+}
 
 const userDetails = async (req, res, next) => {
   try {
