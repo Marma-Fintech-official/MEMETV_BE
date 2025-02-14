@@ -43,7 +43,7 @@ const calculatePhase = (currentDate, startDate) => {
 const login = async (req, res, next) => {
   try {
     // let { name, referredById, telegramId, superUser } = decryptedDatas(req);
-    let { name, referredById, telegramId, superUser } = req.body
+    let { name, referredById, telegramId, superUser, influencerUser } = req.body
     name = name.trim()
     telegramId = telegramId.trim()
     const refId = generateRefId() // Generate a refId for new users
@@ -79,16 +79,23 @@ const login = async (req, res, next) => {
     // Find user in userData.json
     const userInData = userData.find(u => u.telegramId === telegramId)
     const extraRewards = userInData ? userInData.otherRewards : 0
-    const balanceRewardsforExistingUser = userInData ? userInData.balanceRewards : 0
+    const balanceRewardsforExistingUser = userInData
+      ? userInData.balanceRewards
+      : 0
     const watchPoints = userInData ? userInData.watchRewards : 0
-    const lastViewedMemeId = watchPoints >= 8250000 ? 10000 : (userInData ? userInData.watchRewards.lastViewedMemeId : 0);
-
+    const lastViewedMemeId =
+      watchPoints >= 8250000
+        ? 10000
+        : userInData
+        ? userInData.watchRewards.lastViewedMemeId
+        : 0
 
     //Prevent existing users from accessing the superUser link
-    if ((userInData) && superUser) {
+    if (userInData && superUser) {
       return res.status(403).json({
-        error: "You are already an existing user and cannot access the superUser link.",
-      });
+        error:
+          'You are already an existing user and cannot access the superUser link.'
+      })
     }
 
     if (!user) {
@@ -103,7 +110,14 @@ const login = async (req, res, next) => {
       const availableSpace = TOTALREWARDS_LIMIT - totalRewardsUsed
 
       // Determine rewards for new user
-      let newUserRewards = (superUser ? 10000 : 0) + balanceRewardsforExistingUser
+      // let newUserRewards = (superUser ? 10000 : 0) + balanceRewardsforExistingUser
+
+      let signUpRewards = 0
+      if (superUser) signUpRewards += 10000
+      if (influencerUser) signUpRewards += 5000
+
+      // Determine rewards for new user
+      let newUserRewards = signUpRewards + balanceRewardsforExistingUser
 
       // If the user is a superUser and their rewards exceed available space, adjust it
       if (superUser && newUserRewards > availableSpace) {
@@ -115,8 +129,6 @@ const login = async (req, res, next) => {
           message: `Total rewards limit of ${TOTALREWARDS_LIMIT} exceeded across all users.`
         })
       }
-
-
 
       // New user registration logic
       user = new User({
@@ -131,11 +143,12 @@ const login = async (req, res, next) => {
         boosters: [{ type: 'levelUp', count: 1 }], // Initialize booster here for new users
         lastLogin: currentDate,
         level: 1,
-        watchRewards : {
+        watchRewards: {
           watchPoints,
           lastViewedMemeId
         },
-        levelUpRewards: superUser ? newUserRewards : 0 // Adjust levelUpRewards accordingly
+        signUpRewards,
+        influencerUser: !!influencerUser 
       })
 
       if (extraRewards > 0) {
@@ -148,7 +161,6 @@ const login = async (req, res, next) => {
         })
         await newEarlyReward.save()
       }
-      
 
       if (
         (await calculateDayDifference(
