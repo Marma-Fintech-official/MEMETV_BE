@@ -1,6 +1,7 @@
 const User = require('../models/userModel')
 const logger = require('../helpers/logger')
 const UserReward = require('../models/userRewardModel')
+const userDailyreward = require("../models/userDailyrewardsModel")
 const {
   loginStreakReward,
   watchStreakReward,
@@ -1483,6 +1484,48 @@ const userStreaks = async (req, res, next) => {
   }
 }
 
+const watchStreakCheck = async (req, res, next) => {
+  try {
+    let { telegramId } = req.params;
+    telegramId = telegramId.trim();
+
+    // Get the current date
+    const currentDate = new Date();
+
+    // Get start and end of today
+    const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999));
+
+    logger.info(`Fetching streak details for telegramId: ${telegramId} on ${startOfDay.toISOString().split("T")[0]}`);
+
+    // Find today's record using the date range
+    const dailyRecord = await userDailyreward.findOne(
+      {
+        telegramId,
+        createdAt: { $gte: startOfDay, $lte: endOfDay }
+      },
+      {
+        dailyMemeCount: 1,
+        telegramId: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      }
+    );
+
+    if (!dailyRecord) {
+      logger.info(`No dailyReward details found for telegramId: ${telegramId} on ${startOfDay.toISOString().split("T")[0]}`);
+      return res.status(404).json({ message: "No dailyReward record found for today" });
+    }
+
+    res.status(200).json(dailyRecord);
+
+  } catch (err) {
+    logger.error(`Error fetching dailyReward details for telegramId: ${telegramId}. Error: ${err.message}`);
+    res.status(500).json({ message: "Something went wrong" });
+    next(err);
+  }
+};
+
 module.exports = {
   streak,
   calculateLoginStreak,
@@ -1496,5 +1539,6 @@ module.exports = {
   taskStreakRewardClaim,
   multiStreakRewardClaim,
   streakOfStreakRewardClaim,
-  userStreaks
+  userStreaks,
+  watchStreakCheck
 }
