@@ -8,12 +8,13 @@ const {
   isTokenBlacklisted,
 } = require("../helper/tokenHandler");
 const { verifyToken, createToken } = require("../helper/token");
+const { COOKIE_OPTIONS } = require("../utils/cookie");
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "Strict",
-};
+// const COOKIE_OPTIONS = {
+//   httpOnly: true,
+//   secure: process.env.NODE_ENV === "production",
+//   sameSite: "Strict",
+// };
 
 const adminLogin = async (req, res) => {
   try {

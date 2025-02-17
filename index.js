@@ -13,8 +13,10 @@ const {generateUserJson} = require('./src/earlyEarnedrewards/storeEarlyReward');
 const cron = require('node-cron') // Add cron for scheduling tasks
  // Set up routes
  const adminRouter = require('./src/admin/routes/allRoute')
+ const passport = require("passport");
+ const session = require("express-session");
 
-const rateLimit = require('express-rate-limit')
+ const rateLimit = require('express-rate-limit')
 if (cluster.isMaster) {
   const token = process.env.TELEGRAM_TOKEN
   const bot = new TelegramBot(token);
@@ -64,6 +66,8 @@ if (cluster.isMaster) {
 
   const app = express()
 
+  
+
   // Connect to MongoDB
   mongoose
     .connect(process.env.DBURL, {
@@ -86,6 +90,16 @@ if (cluster.isMaster) {
   app.use(cookieParser())
   app.use(helmet())
   app.use(morgan('combined'))
+
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',  // Use a strong secret key
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // Set secure: true if using HTTPS
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());  // Enables persistent login sessions
 
   // Set up routes
   const router = require('./src/routes/allRoutes')
