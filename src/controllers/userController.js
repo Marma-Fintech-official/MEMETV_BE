@@ -828,70 +828,58 @@ const userTaskRewards = async (req, res, next) => {
 
 const purchaseBooster = async (req, res, next) => {
   try {
-    const { telegramId, boosterPoints, booster, boosterCount } =
-      decryptedDatas(req)
+    const { telegramId, boosterPoints, booster, boosterCount } = req.body;
 
-    logger.info(
-      `Received request to purchase booster for telegramId: ${telegramId}`
-    )
+    logger.info(`Received request to purchase booster for telegramId: ${telegramId}`);
 
-    const now = new Date()
-
-    const user = await User.findOne({ telegramId })
+    const now = new Date();
+    const user = await User.findOne({ telegramId });
 
     if (!user) {
-      logger.warn(`User not found for telegramId: ${telegramId}`)
-      return res.status(404).json({ message: 'User not found' })
+      logger.warn(`User not found for telegramId: ${telegramId}`);
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    const totalBoosterPoints = parseInt(boosterPoints)
+    const totalBoosterPoints = parseInt(boosterPoints);
     if (user.balanceRewards < totalBoosterPoints) {
-      logger.warn(
-        `Insufficient points for booster purchase for telegramId: ${telegramId}`
-      )
-      return res
-        .status(400)
-        .json({ message: 'Not enough purchase points available' })
+      logger.warn(`Insufficient points for booster purchase for telegramId: ${telegramId}`);
+      return res.status(400).json({ message: 'Not enough purchase points available' });
     }
 
-    user.balanceRewards -= totalBoosterPoints
-    logger.info(
-      `Deducted ${totalBoosterPoints} points from balanceRewards for telegramId: ${telegramId}`
-    )
+    user.balanceRewards -= totalBoosterPoints;
+    user.spendingRewards += totalBoosterPoints;
 
-    user.spendingRewards += totalBoosterPoints
-    logger.info(
-      `Added ${totalBoosterPoints} points to spendingRewards for telegramId: ${telegramId}`
-    )
+    logger.info(`Deducted ${totalBoosterPoints} points from balanceRewards for telegramId: ${telegramId}`);
+    logger.info(`Added ${totalBoosterPoints} points to spendingRewards for telegramId: ${telegramId}`);
 
-    const existingBooster = user.boosters.find(b => b.type === booster)
+    let energyPurchased = false;
 
-    if (existingBooster) {
-      existingBooster.count += boosterCount
-      logger.info(
-        `Updated booster count for ${booster} to ${existingBooster.count} for telegramId: ${telegramId}`
-      )
+    if (booster === "energy") {
+      energyPurchased = true;
+      logger.info(`Energy booster purchased for telegramId: ${telegramId}`);
     } else {
-      user.boosters.push({ type: booster, count: boosterCount })
-      logger.info(
-        `Added new booster ${booster} with count ${boosterCount} for telegramId: ${telegramId}`
-      )
+      const existingBooster = user.boosters.find(b => b.type === booster);
+      if (existingBooster) {
+        existingBooster.count += boosterCount;
+        logger.info(`Updated booster count for ${booster} to ${existingBooster.count} for telegramId: ${telegramId}`);
+      } else {
+        user.boosters.push({ type: booster, count: boosterCount });
+        logger.info(`Added new booster ${booster} with count ${boosterCount} for telegramId: ${telegramId}`);
+      }
     }
 
-    const currentDateString = now.toISOString().split('T')[0]
+    const currentDateString = now.toISOString().split('T')[0];
 
     let reward = await userReward.findOne({
       telegramId,
       date: currentDateString,
       category: 'spending'
-    })
+    });
 
     if (reward) {
-      reward.rewardPoints += totalBoosterPoints
-      await reward.save()
-      logger.info(
-        `Updated userReward for spending for user ${telegramId} on ${currentDateString}`
-      )
+      reward.rewardPoints += totalBoosterPoints;
+      await reward.save();
+      logger.info(`Updated userReward for spending for user ${telegramId} on ${currentDateString}`);
     } else {
       reward = new userReward({
         category: 'spending',
@@ -899,11 +887,9 @@ const purchaseBooster = async (req, res, next) => {
         rewardPoints: totalBoosterPoints,
         userId: user._id,
         telegramId
-      })
-      await reward.save()
-      logger.info(
-        `Created new userReward for spending for user ${telegramId} on ${currentDateString}`
-      )
+      });
+      await reward.save();
+      logger.info(`Created new userReward for spending for user ${telegramId} on ${currentDateString}`);
     }
 
     const todayDailyRewardRecord = await userDailyreward.findOne({
@@ -912,50 +898,45 @@ const purchaseBooster = async (req, res, next) => {
         $gte: new Date(`${currentDateString}T00:00:00.000Z`),
         $lt: new Date(`${currentDateString}T23:59:59.999Z`)
       }
-    })
+    });
 
     if (todayDailyRewardRecord) {
-      let remainingBoosterPoints = totalBoosterPoints // Use a mutable variable
+      let remainingBoosterPoints = totalBoosterPoints;
 
       if (todayDailyRewardRecord.dailyEarnedRewards >= remainingBoosterPoints) {
-        todayDailyRewardRecord.dailyEarnedRewards -= remainingBoosterPoints
+        todayDailyRewardRecord.dailyEarnedRewards -= remainingBoosterPoints;
       } else {
-        remainingBoosterPoints -= todayDailyRewardRecord.dailyEarnedRewards
-        todayDailyRewardRecord.dailyEarnedRewards = 0
+        remainingBoosterPoints -= todayDailyRewardRecord.dailyEarnedRewards;
+        todayDailyRewardRecord.dailyEarnedRewards = 0;
       }
 
-      await todayDailyRewardRecord.save()
-      logger.info(
-        `Updated dailyEarnedRewards for telegramId: ${telegramId}. Remaining rewards: ${todayDailyRewardRecord.dailyEarnedRewards}`
-      )
+      await todayDailyRewardRecord.save();
+      logger.info(`Updated dailyEarnedRewards for telegramId: ${telegramId}. Remaining rewards: ${todayDailyRewardRecord.dailyEarnedRewards}`);
     } else {
-      logger.warn(
-        `No daily rewards record found for today's date for telegramId: ${telegramId}`
-      )
-      return res
-        .status(400)
-        .json({ message: 'No daily rewards available for today' })
+      logger.warn(`No daily rewards record found for today's date for telegramId: ${telegramId}`);
+      return res.status(400).json({ message: 'No daily rewards available for today' });
     }
 
-    await user.save()
+    await user.save();
 
-    logger.info(`Booster purchase successful for telegramId: ${telegramId}`)
+    logger.info(`Booster purchase successful for telegramId: ${telegramId}`);
+
     return res.status(200).json({
-      message: 'Booster purchased successfully',
-      user
-    })
-  } catch (err) {
-    logger.error(
-      `Error processing booster purchase for telegramId: ${req.body.telegramId} - ${err.message}`
-    )
-    res.status(500).json({
-      message: 'Something went wrong'
-    })
+      message: "Booster purchased successfully",
+      user,
+      energy: energyPurchased
+    });
 
-    // Optionally, you can call next(err) if you still want to pass the error to an error-handling middleware.
-    next(err)
+  } catch (err) {
+    logger.error(`Error processing booster purchase for telegramId: ${req.body.telegramId} - ${err.message}`);
+    res.status(500).json({
+      message: "Something went wrong"
+    });
+    next(err);
   }
-}
+};
+
+
 
 const purchaseGameCards = async (req, res, next) => {
   try {

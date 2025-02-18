@@ -18,7 +18,7 @@ router.post('/userGameRewards',celebrate(commonPayload),userGameRewards);
 
 router.post('/userTaskRewards', celebrate(commonPayload), userTaskRewards);
 
-router.post('/purchaseBooster', celebrate(commonPayload), purchaseBooster);
+router.post('/purchaseBooster', purchaseBooster);
 
 router.post('/purchaseGameCards', celebrate(commonPayload), purchaseGameCards);
 
