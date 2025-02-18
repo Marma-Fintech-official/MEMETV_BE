@@ -828,7 +828,7 @@ const userTaskRewards = async (req, res, next) => {
 
 const purchaseBooster = async (req, res, next) => {
   try {
-    const { telegramId, boosterPoints, booster, boosterCount } = req.body;
+    const { telegramId, boosterPoints, booster, boosterCount } = decryptedDatas(req)
 
     logger.info(`Received request to purchase booster for telegramId: ${telegramId}`);
 
