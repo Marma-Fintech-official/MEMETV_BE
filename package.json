@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "promo": "node ./src/PromoCodes/promoGenerator.js"
   },
   "author": "paviesh",
   "license": "ISC",
@@ -13,6 +14,7 @@
     "celebrate": "^15.0.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
     "errors": "^0.3.0",
@@ -26,6 +28,7 @@
     "node-cron": "^3.0.3",
     "node-telegram-bot-api": "^0.66.0",
     "nodemon": "^3.1.4",
+    "path": "^0.12.7",
     "segments": "^1.0.1",
     "typedi": "^0.10.0",
     "winston": "^3.14.2",

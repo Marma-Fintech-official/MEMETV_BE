@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose')
 
 const userSchema = mongoose.Schema(
@@ -6,7 +5,7 @@ const userSchema = mongoose.Schema(
     name: {
       type: String,
       trim: true,
-      required: true,
+      required: true
     },
     telegramId: {
       type: String,
@@ -22,6 +21,10 @@ const userSchema = mongoose.Schema(
     balanceRewards: {
       type: Number,
       default: 500
+    },
+    promoRewards: {
+      type: Number,
+      default: 0
     },
     levelUpRewards: {
       type: Number,
@@ -53,6 +56,10 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 0
     },
+    signUpRewards:{
+      type: Number,
+      default: 0
+    },
     stakingRewards: {
       type: Number,
       default: 0
@@ -73,7 +80,15 @@ const userSchema = mongoose.Schema(
       youtube: {
         type: Boolean,
         default: false
+      },
+      telegramCommunity: {
+        type: Boolean,
+        default: false
       }
+    },
+    earlyEarnedRewards: {
+      type: Number,
+      default: 0
     },
     referredById: {
       type: String,
@@ -82,24 +97,28 @@ const userSchema = mongoose.Schema(
     boosters: [
       {
         type: {
-          type: String, // Booster type, e.g., '2x', '3x'
+          type: String // Booster type, e.g., '2x', '3x'
         },
         count: {
           type: Number, // Number of times this booster is available
-          default: '',
-        },
-      },
+          default: ''
+        }
+      }
     ],
     level: {
       type: Number,
       default: 1
+    },
+    influencerUser:{
+      type: Boolean,
+      default: false
     },
     lastLogin: { type: Date }, // Track the last login time
     refferalIds: [
       {
         userId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Users',
+          ref: 'Users'
         },
         createdAt: {
           type: Date,
@@ -107,6 +126,14 @@ const userSchema = mongoose.Schema(
         }
       }
     ],
+    tutorialStatus: {
+      type: Boolean,
+      default: false
+    },
+    userWalletAddress: {
+      type: String,
+      default: ''
+    },
     streak: {
       loginStreak: {
         loginStreakCount: {
@@ -118,6 +145,12 @@ const userSchema = mongoose.Schema(
           default: Date.now
         },
         loginStreakReward: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
+        loginStreakRewardUnclaimed: [
           {
             type: Number,
             default: 0
@@ -143,6 +176,12 @@ const userSchema = mongoose.Schema(
             default: 0
           }
         ],
+        watchStreakRewardUnclaimed: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
         unClaimedWatchStreakReward: {
           type: Number,
           default: 0
@@ -158,6 +197,12 @@ const userSchema = mongoose.Schema(
           default: Date.now
         },
         referStreakReward: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
+        referStreakRewardUnclaimed: [
           {
             type: Number,
             default: 0
@@ -183,6 +228,12 @@ const userSchema = mongoose.Schema(
             default: 0
           }
         ],
+        taskStreakRewardUnclaimed: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
         unClaimedTaskStreakReward: {
           type: Number,
           default: 0
@@ -198,6 +249,12 @@ const userSchema = mongoose.Schema(
           default: Date.now
         },
         multiStreakReward: [
+          {
+            type: Number,
+            default: 0
+          }
+        ],
+        multiStreakRewardUnclaimed: [
           {
             type: Number,
             default: 0
@@ -226,23 +283,6 @@ const userSchema = mongoose.Schema(
           default: 0
         }
       },
-      claimedLoginDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
-      claimedWatchDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
-      claimedReferDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
-      claimedTaskDays: { type: [Boolean], default: () => Array(7).fill(false) },
-      claimedMultiDays: {
-        type: [Boolean],
-        default: () => Array(7).fill(false)
-      },
       startDay: {
         type: Number,
         default: 0
@@ -251,20 +291,7 @@ const userSchema = mongoose.Schema(
         type: Number,
         default: 0
       }
-    },
-    yourReferenceIds: [
-      {
-        userId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Users',
-          required: true
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now
-        }
-      }
-    ]
+    }
   },
   {
     timestamps: true
@@ -274,4 +301,3 @@ const userSchema = mongoose.Schema(
 const User = mongoose.model('User', userSchema)
 
 module.exports = User
-

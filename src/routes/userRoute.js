@@ -1,85 +1,31 @@
-const express = require('express')
-const router = express.Router()
-const { celebrate, Joi, errors, Segments } = require('celebrate')
+const express = require('express');
+const router = express.Router();
+const { celebrate, errors } = require('celebrate');
 const {
   login,
   userGameRewards,
   userTaskRewards,
   purchaseBooster,
   purchaseGameCards,
-  stakingRewards
-} = require('../controllers/userController')
+  stakingRewards,
+  getMintedTokens
+} = require('../controllers/userController');
+const { commonPayload } = require('../helpers/validation');
 
-router.post(
-  '/login',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      name: Joi.string().required(),
-      referredById: Joi.string().optional(),
-      telegramId: Joi.string().required()
-    })
-  }),
-  login
-)
+router.post('/login', celebrate(commonPayload), login);
 
-router.post(
-  '/userGameRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      gamePoints: Joi.string().optional(),
-      boosters: Joi.array().items(Joi.string()).optional()
-    })
-  }),
-  userGameRewards
-)
+router.post('/userGameRewards',celebrate(commonPayload),userGameRewards);
 
-router.post(
-  '/userTaskRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      taskPoints: Joi.string().required(),
-      channel: Joi.string().required()
-    })
-  }),
-  userTaskRewards
-)
+router.post('/userTaskRewards', celebrate(commonPayload), userTaskRewards);
 
-router.post(
-  '/purchaseBooster',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      boosterPoints: Joi.string().required(),
-      booster: Joi.string().required(),
-      boosterCount: Joi.number().required()
-    })
-  }),
-  purchaseBooster
-)
+router.post('/purchaseBooster', celebrate(commonPayload), purchaseBooster);
 
-router.post(
-  '/purchaseGameCards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      telegramId: Joi.string().required(),
-      gamePoints: Joi.string().required()
-    })
-  }),
-  purchaseGameCards
-)
+router.post('/purchaseGameCards', celebrate(commonPayload), purchaseGameCards);
 
-router.post(
-  '/stakingRewards',
-  celebrate({
-    [Segments.BODY]: Joi.object().keys({
-      stakingId: Joi.string().required()
-    })
-  }),
-  stakingRewards
-)
+router.post('/stakingRewards', celebrate(commonPayload), stakingRewards);
 
-router.use(errors())
+router.get("/getMintedTokens", getMintedTokens)
 
-module.exports = router
+router.use(errors());
+
+module.exports = router;
